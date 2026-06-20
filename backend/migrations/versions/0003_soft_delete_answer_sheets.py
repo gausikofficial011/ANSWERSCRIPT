@@ -1,7 +1,7 @@
 """
-0003_add_soft_delete_to_answer_sheets — Add soft delete, hashing, supersession, and processing columns to answer_sheets
+0003_soft_delete_answer_sheets — Add soft delete, hashing, supersession, and processing columns to answer_sheets
 
-Revision ID: 0003_add_soft_delete_to_answer_sheets
+Revision ID: 0003_soft_delete_answer_sheets
 Revises: 0002_add_soft_delete_to_academic
 Create Date: 2026-06-20 14:00:00.000000
 """
@@ -13,7 +13,7 @@ from alembic import op
 import sqlalchemy as sa
 
 # Revision identifiers, used by Alembic.
-revision: str = "0003_add_soft_delete_to_answer_sheets"
+revision: str = "0003_soft_delete_answer_sheets"
 down_revision: Union[str, None] = "0002_add_soft_delete_to_academic"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

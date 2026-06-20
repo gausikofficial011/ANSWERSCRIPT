@@ -2,7 +2,7 @@
 0004_page_wise_ocr_results — Alter ocr_results to page-wise layout and tracking
 
 Revision ID: 0004_page_wise_ocr_results
-Revises: 0003_add_soft_delete_to_answer_sheets
+Revises: 0003_soft_delete_answer_sheets
 Create Date: 2026-06-20 15:00:00.000000
 """
 
@@ -15,7 +15,7 @@ from sqlalchemy.dialects import postgresql
 
 # Revision identifiers, used by Alembic.
 revision: str = "0004_page_wise_ocr_results"
-down_revision: Union[str, None] = "0003_add_soft_delete_to_answer_sheets"
+down_revision: Union[str, None] = "0003_soft_delete_answer_sheets"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

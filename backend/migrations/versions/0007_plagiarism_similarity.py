@@ -1,7 +1,7 @@
 """
-0007_create_plagiarism_similarity — Create plagiarism_similarities and update plagiarism_reports/answer_sheets
+0007_plagiarism_similarity — Create plagiarism_similarities and update plagiarism_reports/answer_sheets
 
-Revision ID: 0007_create_plagiarism_similarity
+Revision ID: 0007_plagiarism_similarity
 Revises: 0006_update_evaluations_mapping
 Create Date: 2026-06-20 18:00:00.000000
 """
@@ -14,7 +14,7 @@ import sqlalchemy as sa
 
 
 # Revision identifiers, used by Alembic.
-revision: str = "0007_create_plagiarism_similarity"
+revision: str = "0007_plagiarism_similarity"
 down_revision: Union[str, None] = "0006_update_evaluations_mapping"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
