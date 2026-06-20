@@ -1,0 +1,96 @@
+# =============================================================================
+# AI Answer Evaluation System — Root .gitignore
+# =============================================================================
+
+# ── Environment Files ─────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+!.env.example
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+ENV/
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+*.log
+
+# ── Node / Frontend ───────────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/coverage/
+*.tsbuildinfo
+.npm
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+docker/nginx/ssl/*.pem
+docker/nginx/ssl/*.crt
+docker/nginx/ssl/*.key
+
+# ── Uploads & Generated Files ────────────────────────────────────────────────
+uploads/answer_sheets/**
+uploads/processed_images/**
+uploads/ocr_results/**
+uploads/temporary/**
+uploads/reports/**
+!uploads/**/.gitkeep
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+logs/**/*.log
+logs/**
+!logs/**/.gitkeep
+
+# ── Database ─────────────────────────────────────────────────────────────────
+database/backups/**
+!database/backups/.gitkeep
+*.sqlite
+*.db
+
+# ── AI Model Cache ────────────────────────────────────────────────────────────
+.model_cache/
+model_cache/
+*.bin
+*.safetensors
+*.onnx
+
+# ── IDE & OS ─────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Secrets ───────────────────────────────────────────────────────────────────
+*.pem
+*.key
+*.crt
+secrets/

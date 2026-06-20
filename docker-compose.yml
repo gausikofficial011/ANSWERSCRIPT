@@ -1,0 +1,268 @@
+# =============================================================================
+# Docker Compose — Development Environment
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# =============================================================================
+
+version: "3.9"
+
+name: ai-eval-dev
+
+services:
+
+  # ── NGINX Reverse Proxy ─────────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: ai_eval_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - ./uploads:/app/uploads:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - ai_eval_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Frontend (React + Vite Dev Server) ─────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend/Dockerfile.dev
+    container_name: ai_eval_frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE_URL=http://localhost/api/v1
+      - VITE_APP_NAME=AI Answer Evaluation System
+    ports:
+      - "5173:5173"
+    networks:
+      - ai_eval_network
+    restart: unless-stopped
+
+  # ── Backend (FastAPI + Uvicorn) ─────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile.dev
+    container_name: ai_eval_backend
+    volumes:
+      - ./backend:/app
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - model_cache:/app/model_cache
+    env_file:
+      - .env
+    environment:
+      - BACKEND_RELOAD=true
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - ai_eval_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ── PostgreSQL Database ─────────────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: ai_eval_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ai_eval_db}
+      POSTGRES_USER: ${POSTGRES_USER:-ai_eval_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    networks:
+      - ai_eval_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ai_eval_user} -d ${POSTGRES_DB:-ai_eval_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Redis (Future: async job queue) ────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ai_eval_redis
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - ai_eval_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  # ── Celery Worker: OCR Queue ────────────────────────────────────────────────
+  # CPU-intensive: handles PDF conversion + EasyOCR extraction
+  celery_ocr_worker:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile.dev
+    container_name: ai_eval_celery_ocr
+    volumes:
+      - ./backend:/app
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - model_cache:/app/model_cache
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ai_eval_network
+    restart: unless-stopped
+    command: >
+      celery -A app.tasks.celery_app:celery_app worker
+      -Q ocr
+      --concurrency=2
+      --loglevel=info
+      --logfile=/app/logs/app/celery_ocr.log
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+  # ── Celery Worker: AI Evaluation Queue ────────────────────────────────────
+  # CPU/Memory-intensive: SentenceTransformer embedding and scoring
+  celery_eval_worker:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile.dev
+    container_name: ai_eval_celery_eval
+    volumes:
+      - ./backend:/app
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - model_cache:/app/model_cache
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ai_eval_network
+    restart: unless-stopped
+    command: >
+      celery -A app.tasks.celery_app:celery_app worker
+      -Q evaluation,plagiarism
+      --concurrency=2
+      --loglevel=info
+      --logfile=/app/logs/app/celery_eval.log
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+
+  # ── Celery Worker: Reports + Cleanup Queues ───────────────────────────────
+  celery_utility_worker:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile.dev
+    container_name: ai_eval_celery_utility
+    volumes:
+      - ./backend:/app
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ai_eval_network
+    restart: unless-stopped
+    command: >
+      celery -A app.tasks.celery_app:celery_app worker
+      -Q reports,cleanup,default
+      --concurrency=4
+      --loglevel=info
+      --logfile=/app/logs/app/celery_utility.log
+
+  # ── Celery Beat: Periodic Task Scheduler ──────────────────────────────────
+  # Triggers scheduled tasks (temp file cleanup, report expiry)
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile.dev
+    container_name: ai_eval_celery_beat
+    volumes:
+      - ./backend:/app
+      - ./logs:/app/logs
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - ai_eval_network
+    restart: unless-stopped
+    command: >
+      celery -A app.tasks.celery_app:celery_app beat
+      --loglevel=info
+      --logfile=/app/logs/app/celery_beat.log
+
+# ── Named Volumes ───────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  model_cache:
+    driver: local
+
+# ── Networks ─────────────────────────────────────────────────────────────────
+networks:
+  ai_eval_network:
+    driver: bridge
+    name: ai_eval_network

@@ -1,0 +1,56 @@
+# =============================================================================
+# Docker Compose — Production Overrides
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# =============================================================================
+
+version: "3.9"
+
+services:
+
+  nginx:
+    volumes:
+      - ./docker/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - frontend_dist:/app/static:ro
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend/Dockerfile
+    volumes: []           # No live-reload in prod — static build served by nginx
+    environment:
+      - NODE_ENV=production
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile
+    environment:
+      - BACKEND_RELOAD=false
+      - BACKEND_WORKERS=4
+      - APP_ENV=production
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - model_cache:/app/model_cache
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: "2.0"
+
+  db:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  redis:
+    restart: always
+
+volumes:
+  frontend_dist:
+    driver: local
