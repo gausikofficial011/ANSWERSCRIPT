@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Plagiarism Comparison Report</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm;
+      @bottom-right {
+        content: "Page " counter(page) " of " counter(pages);
+        font-family: Arial, sans-serif;
+        font-size: 8pt;
+        color: #555;
+      }
+    }
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 10pt;
+      line-height: 1.4;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 25px;
+      border-bottom: 2px solid #333;
+      padding-bottom: 10px;
+    }
+    .header h1 {
+      font-size: 18pt;
+      margin: 0 0 5px 0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .header p {
+      margin: 0;
+      font-size: 10pt;
+      color: #555;
+    }
+    .info-section {
+      margin-bottom: 20px;
+      width: 100%;
+    }
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+    }
+    .info-table td {
+      padding: 4px 0;
+      vertical-align: top;
+    }
+    .info-label {
+      font-weight: bold;
+      width: 18%;
+      color: #555;
+    }
+    .info-value {
+      width: 32%;
+    }
+    .summary-box {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 12px;
+      margin-bottom: 25px;
+      display: table;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .summary-item {
+      display: table-cell;
+      text-align: center;
+      width: 25%;
+    }
+    .summary-label {
+      font-size: 8pt;
+      text-transform: uppercase;
+      color: #6c757d;
+      margin-bottom: 3px;
+    }
+    .summary-value {
+      font-size: 14pt;
+      font-weight: bold;
+      color: #333;
+    }
+    .comparison-container {
+      width: 100%;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      overflow: hidden;
+      page-break-inside: avoid;
+    }
+    .comparison-header {
+      background-color: #f1f3f5;
+      padding: 8px 12px;
+      border-bottom: 1px solid #dee2e6;
+      font-weight: bold;
+      display: table;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .comparison-header-left {
+      display: table-cell;
+      text-align: left;
+    }
+    .comparison-header-right {
+      display: table-cell;
+      text-align: right;
+      font-size: 9pt;
+      color: #555;
+    }
+    .comparison-split {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+    .comparison-column {
+      display: table-cell;
+      width: 50%;
+      padding: 12px;
+      vertical-align: top;
+      box-sizing: border-box;
+      background-color: #ffffff;
+      white-space: pre-wrap;
+      font-size: 9pt;
+      font-family: monospace;
+    }
+    .comparison-column-left {
+      border-right: 1px solid #dee2e6;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      font-size: 8pt;
+      font-weight: bold;
+      border-radius: 3px;
+    }
+    .badge-clean {
+      background-color: #d1e7dd;
+      color: #0f5132;
+      border: 1px solid #badbcc;
+    }
+    .badge-suspicious {
+      background-color: #fff3cd;
+      color: #664d03;
+      border: 1px solid #ffecb5;
+    }
+    .badge-high-risk {
+      background-color: #f8d7da;
+      color: #842029;
+      border: 1px solid #f5c2c7;
+    }
+    .badge-status {
+      background-color: #e2f0fd;
+      color: #0d6efd;
+      border: 1px solid #bfe3fe;
+    }
+    .section-title {
+      font-size: 12pt;
+      border-bottom: 1px solid #dee2e6;
+      padding-bottom: 5px;
+      margin-top: 25px;
+      margin-bottom: 15px;
+      color: #333;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .footer-section {
+      margin-top: 50px;
+      width: 100%;
+    }
+    .signature-container {
+      width: 100%;
+      display: table;
+      margin-top: 40px;
+    }
+    .signature-block {
+      display: table-cell;
+      width: 50%;
+      text-align: center;
+    }
+    .signature-line {
+      width: 60%;
+      border-bottom: 1px solid #333;
+      margin: 0 auto 5px auto;
+    }
+    .signature-title {
+      font-size: 9pt;
+      color: #555;
+    }
+    .metadata {
+      font-size: 8pt;
+      color: #6c757d;
+      text-align: left;
+      margin-top: 20px;
+      border-top: 1px dashed #dee2e6;
+      padding-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>AI Answer Evaluation System</h1>
+    <p>Official Plagiarism Analysis Report</p>
+  </div>
+
+  <div class="info-section">
+    <table class="info-table">
+      <tr>
+        <td class="info-label">Report ID:</td>
+        <td class="info-value" style="font-family: monospace; font-size: 9pt;">{{ report_id }}</td>
+        <td class="info-label">Date Flagged:</td>
+        <td class="info-value">{{ created_at }}</td>
+      </tr>
+      <tr>
+        <td class="info-label">Student A (Source):</td>
+        <td class="info-value" style="font-weight: bold;">{{ student_a_name }} ({{ student_a_number }})</td>
+        <td class="info-label">Student B (Target):</td>
+        <td class="info-value" style="font-weight: bold;">{{ student_b_name }} ({{ student_b_number }})</td>
+      </tr>
+      <tr>
+        <td class="info-label">Review Status:</td>
+        <td class="info-value">
+          <span class="badge badge-status">{{ review_status }}</span>
+        </td>
+        <td class="info-label">Plagiarism Risk:</td>
+        <td class="info-value">
+          {% if risk_level == 'HIGH_RISK' %}
+          <span class="badge badge-high-risk">HIGH RISK</span>
+          {% elif risk_level == 'SUSPICIOUS' %}
+          <span class="badge badge-suspicious">SUSPICIOUS</span>
+          {% else %}
+          <span class="badge badge-clean">CLEAN</span>
+          {% endif %}
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="summary-box">
+    <div class="summary-item">
+      <div class="summary-label">Similarity Index</div>
+      <div class="summary-value" style="color: #dc3545;">{{ "%.1f"|format(similarity_percentage) }}%</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Semantic Similarity</div>
+      <div class="summary-value">{{ "%.1f"|format(semantic_similarity * 100.0) }}%</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Lexical Similarity</div>
+      <div class="summary-value">{{ "%.1f"|format(lexical_similarity * 100.0) }}%</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Overlap Similarity</div>
+      <div class="summary-value">{{ "%.1f"|format(overlap_similarity * 100.0) }}%</div>
+    </div>
+  </div>
+
+  <h2 class="section-title">Side-by-Side Question Comparison</h2>
+
+  {% for segment in similarity_segments %}
+  <div class="comparison-container">
+    <div class="comparison-header">
+      <div class="comparison-header-left">
+        {{ segment.question_title or "Question Mapping Segment" }}
+      </div>
+      <div class="comparison-header-right">
+        Match Strength: <strong>{{ "%.1f"|format(segment.final_similarity * 100.0) }}%</strong> 
+        ({{ segment.risk_level }})
+      </div>
+    </div>
+    <div class="comparison-split">
+      <div class="comparison-column comparison-column-left">
+        <div style="font-weight: bold; font-family: Arial; font-size: 8pt; margin-bottom: 5px; color: #555; text-transform: uppercase;">
+          Student A Text:
+        </div>
+        {{ segment.source_text or "[No text extracted]" }}
+      </div>
+      <div class="comparison-column">
+        <div style="font-weight: bold; font-family: Arial; font-size: 8pt; margin-bottom: 5px; color: #555; text-transform: uppercase;">
+          Student B Text:
+        </div>
+        {{ segment.target_text or "[No text extracted]" }}
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <p style="text-align: center; color: #888; padding: 20px; border: 1px solid #dee2e6; border-radius: 4px;">
+    No flagged segments or comparison details available.
+  </p>
+  {% endfor %}
+
+  <h2 class="section-title">Review Outcome</h2>
+  <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 15px;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="width: 20%; font-weight: bold; padding: 4px 0; color: #555;">Review Status:</td>
+        <td style="padding: 4px 0; font-weight: bold;">{{ review_status }}</td>
+      </tr>
+      <tr>
+        <td style="font-weight: bold; padding: 4px 0; color: #555;">Reviewed By:</td>
+        <td style="padding: 4px 0;">{{ reviewed_by or "N/A" }}</td>
+      </tr>
+      <tr>
+        <td style="font-weight: bold; padding: 4px 0; color: #555;">Reviewed At:</td>
+        <td style="padding: 4px 0;">{{ reviewed_at or "N/A" }}</td>
+      </tr>
+      <tr>
+        <td style="font-weight: bold; padding: 8px 0 4px 0; color: #555; vertical-align: top;">Teacher Notes:</td>
+        <td style="padding: 8px 0 4px 0; font-style: italic; white-space: pre-wrap;">{{ teacher_notes or "No notes added by reviewer." }}</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="footer-section">
+    <div class="signature-container">
+      <div class="signature-block">
+        <div class="signature-line" style="margin-top: 30px;"></div>
+        <div class="signature-title">Academic Integrity Officer</div>
+      </div>
+      <div class="signature-block">
+        <div class="signature-line" style="margin-top: 30px;"></div>
+        <div class="signature-title">Department Seal</div>
+      </div>
+    </div>
+    <div class="metadata">
+      Note: This report is compiled using comparative analysis algorithms. Confidential academic record.
+    </div>
+  </div>
+
+</body>
+</html>

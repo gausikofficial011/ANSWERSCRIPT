@@ -1,0 +1,47 @@
+{
+  "dataset": "IntelliGrade Golden Calibration Ground Truth",
+  "version": "1.0.0",
+  "records": [
+    {
+      "id": "gold-rec-001",
+      "question": "Explain ACID properties in Database Management Systems.",
+      "max_marks": 10.0,
+      "model_answer": "ACID stands for Atomicity, Consistency, Isolation, and Durability. Atomicity ensures all-or-nothing execution. Consistency guarantees database transitions from one valid state to another. Isolation prevents concurrent transactions from interfering. Durability ensures committed changes survive crashes.",
+      "student_answer": "ACID properties in DBMS: Atomicity means either all transaction steps complete or none occur. Consistency keeps data valid under rules. Isolation separates concurrent operations so they do not conflict. Durability guarantees committed data persists even during hardware failure.",
+      "criteria": [
+        {"criterion": "Atomicity explanation", "max_mark": 2.5, "gold_mark": 2.5},
+        {"criterion": "Consistency explanation", "max_mark": 2.5, "gold_mark": 2.5},
+        {"criterion": "Isolation explanation", "max_mark": 2.5, "gold_mark": 2.5},
+        {"criterion": "Durability explanation", "max_mark": 2.5, "gold_mark": 2.5}
+      ],
+      "gold_total_score": 10.0,
+      "is_plagiarized": false
+    },
+    {
+      "id": "gold-rec-002",
+      "question": "What is a Process Control Block (PCB)? List three items it contains.",
+      "max_marks": 5.0,
+      "model_answer": "A Process Control Block is a data structure maintained by the OS for each process. It contains Process ID (PID), Program Counter, CPU registers, memory management info, and I/O status information.",
+      "student_answer": "PCB is a kernel data structure that stores all information about an active process. It includes the PID, the program counter pointing to the next instruction, and CPU register values.",
+      "criteria": [
+        {"criterion": "PCB Definition", "max_mark": 2.0, "gold_mark": 2.0},
+        {"criterion": "Three Items Listed", "max_mark": 3.0, "gold_mark": 3.0}
+      ],
+      "gold_total_score": 5.0,
+      "is_plagiarized": false
+    },
+    {
+      "id": "gold-rec-003",
+      "question": "Differentiate between Prim's and Kruskal's algorithm.",
+      "max_marks": 5.0,
+      "model_answer": "Both find Minimum Spanning Tree. Prim's grows a single tree by adding the minimum edge connecting tree to non-tree vertex (vertex-based). Kruskal's adds the overall smallest edge that does not form a cycle (edge-based, uses Disjoint Set Union).",
+      "student_answer": "Prim's builds MST starting from a vertex and picking the lowest weight adjacent edge. Kruskal's sorts all edges globally and picks the shortest edge without creating a loop.",
+      "criteria": [
+        {"criterion": "Core approach comparison", "max_mark": 3.0, "gold_mark": 3.0},
+        {"criterion": "Cycle detection / Data structures", "max_mark": 2.0, "gold_mark": 1.5}
+      ],
+      "gold_total_score": 4.5,
+      "is_plagiarized": false
+    }
+  ]
+}

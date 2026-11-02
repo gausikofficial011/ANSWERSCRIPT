@@ -1,0 +1,88 @@
+schema_version: "1.0.0"
+
+portal:
+  id: "analytics"
+  display_name: "Academic Analytics & Quality Assurance"
+  route: "/portals/analytics"
+  description: "Psychometric examination analytics: score distributions, question difficulty, discrimination indices, teacher override rates, AI-human agreement"
+  allowed_roles:
+    - "super_admin"
+    - "academic_admin"
+    - "teacher"
+    - "qa_analyst"
+  required_permissions:
+    - "analytics:view_cohort"
+
+layout:
+  type: "analytics_dashboard"
+  sidebar_width: 250
+  header_actions:
+    - id: "export_analytics_csv"
+      label: "Export QA Report (CSV)"
+      icon: "FileSpreadsheet"
+    - id: "export_analytics_pdf"
+      label: "Export Accreditation Brief (PDF)"
+      icon: "FileText"
+
+navigation:
+  - id: "distributions"
+    label: "Score Distributions"
+    icon: "BarChart2"
+    target: "distributions"
+  - id: "psychometrics"
+    label: "Difficulty & Discrimination"
+    icon: "Sliders"
+    target: "psychometrics"
+  - id: "rubric_attainment"
+    label: "Learning Outcomes (OBE)"
+    icon: "Target"
+    target: "rubric_attainment"
+  - id: "ai_human_alignment"
+    label: "AI vs. Teacher Agreement"
+    icon: "GitMerge"
+    target: "ai_human_alignment"
+  - id: "ocr_quality"
+    label: "OCR Latency & Accuracy"
+    icon: "Activity"
+    target: "ocr_quality"
+
+features:
+  score_bell_curve: true
+  difficulty_index_calculation: true
+  point_biserial_discrimination: true
+  teacher_override_frequency_tracking: true
+  ocr_word_error_rate_benchmarks: true
+  outcome_based_education_attainment: true
+
+ui_components:
+  score_histogram: "ScoreDistributionHistogram"
+  difficulty_matrix: "QuestionPsychometricsTable"
+  teacher_agreement_scatter: "AITeacherAgreementScatter"
+  ocr_metrics_card: "OCRQualityMetricsCard"
+  obe_radar: "OutcomeAttainmentRadar"
+
+api_requirements:
+  endpoints:
+    - method: "GET"
+      path: "/api/v1/analytics/exams/{exam_id}/metrics"
+    - method: "GET"
+      path: "/api/v1/analytics/exams/{exam_id}/psychometrics"
+    - method: "GET"
+      path: "/api/v1/reports/generate"
+
+workflow_states:
+  - "GATHERING_SAMPLE"
+  - "COMPUTING_PSYCHOMETRICS"
+  - "VERIFIED"
+
+state_expectations:
+  loading: "Calculating cohort variance, Cronbach alpha, and discrimination indices..."
+  empty: "Insufficient published examination records to compute psychometric statistics (minimum 3 records required)."
+  error: "Error aggregating institutional examination metrics."
+
+audit_requirements:
+  log_analytics_exports: true
+  protect_individual_student_identities_in_aggregates: true
+
+security_requirements:
+  anonymize_student_identifiers: true

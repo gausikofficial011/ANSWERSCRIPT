@@ -6,6 +6,7 @@ from app.infrastructure.storage.local_file_storage_service import LocalFileStora
 from app.infrastructure.storage.file_validator_service import FileValidatorService
 from app.infrastructure.storage.file_metadata_service import FileMetadataService
 from app.infrastructure.storage.stub_malware_scanner import StubMalwareScanner
+from app.infrastructure.storage.clamav_malware_scanner import ClamAVMalwareScanner
 from app.infrastructure.storage.default_student_mapping_service import DefaultStudentMappingService
 from app.infrastructure.storage.local_storage_lifecycle_service import LocalStorageLifecycleService
 
@@ -14,6 +15,8 @@ __all__ = [
     "FileValidatorService",
     "FileMetadataService",
     "StubMalwareScanner",
+    "ClamAVMalwareScanner",
     "DefaultStudentMappingService",
     "LocalStorageLifecycleService",
 ]
+

@@ -72,6 +72,8 @@ class EvaluationResponse(BaseModel):
     verified_at: datetime | None = None
     evaluation_model: str | None = None
     evaluation_confidence: float | None = None
+    confidence_score: float | None = None
+    low_confidence_flag: bool = False
     explanation: ExplanationResponse | None = None
     created_at: datetime
     updated_at: datetime

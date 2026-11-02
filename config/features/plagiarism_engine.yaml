@@ -1,0 +1,24 @@
+schema_version: "1.0.0"
+
+feature:
+  id: "plagiarism_engine"
+  name: "Cross-Script Collusion & Integrity Analysis Engine"
+  enabled: true
+
+candidate_filtering:
+  algorithm: "minhash_lsh"
+  num_permutations: 128
+  jaccard_threshold: 0.50
+
+similarity_metrics:
+  word_ngram_range: [2, 5]
+  char_ngram_range: [4, 8]
+  tfidf_similarity_weight: 0.40
+  semantic_embedding_weight: 0.60
+  high_collusion_flag_threshold: 0.75
+  suspicious_cluster_min_size: 2
+
+exclusions:
+  exclude_question_prompts: true
+  exclude_model_answers: true
+  exclude_common_boilerplate_phrases: true

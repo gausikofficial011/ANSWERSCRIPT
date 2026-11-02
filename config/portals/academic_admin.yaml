@@ -1,0 +1,88 @@
+schema_version: "1.0.0"
+
+portal:
+  id: "academic_admin"
+  display_name: "Academic Administration Portal"
+  route: "/portals/academic-admin"
+  description: "Curriculum hierarchy, departments, academic calendar, student enrolment, faculty workload, publication approval"
+  allowed_roles:
+    - "super_admin"
+    - "academic_admin"
+  required_permissions:
+    - "academic:manage_structure"
+
+layout:
+  type: "tabs"
+  sidebar_width: 260
+  header_actions:
+    - id: "new_department"
+      label: "Add Department"
+      icon: "PlusCircle"
+    - id: "bulk_enroll"
+      label: "Bulk Enrolment (CSV)"
+      icon: "Upload"
+
+navigation:
+  - id: "departments"
+    label: "Departments & Programs"
+    icon: "Layers"
+    target: "departments"
+  - id: "calendar"
+    label: "Examination Calendar"
+    icon: "Calendar"
+    target: "calendar"
+  - id: "faculty"
+    label: "Faculty Assignments"
+    icon: "Briefcase"
+    target: "faculty"
+  - id: "students"
+    label: "Student Enrolment"
+    icon: "GraduationCap"
+    target: "students"
+  - id: "publication"
+    label: "Publication Approvals"
+    icon: "CheckCheck"
+    target: "publication"
+
+features:
+  curriculum_hierarchy: true
+  csv_bulk_import: true
+  publication_signoff: true
+  faculty_allocation: true
+
+ui_components:
+  department_tree: "AcademicStructureTree"
+  exam_schedule_view: "ExamScheduleManager"
+  faculty_assignment_grid: "FacultyWorkloadGrid"
+  student_directory: "StudentDirectoryTable"
+  publication_approval_modal: "PublicationApprovalModal"
+
+api_requirements:
+  endpoints:
+    - method: "GET"
+      path: "/api/v1/academic/departments"
+    - method: "GET"
+      path: "/api/v1/academic/cohorts"
+    - method: "GET"
+      path: "/api/v1/exams"
+    - method: "POST"
+      path: "/api/v1/results/exams/{exam_id}/publish"
+
+workflow_states:
+  - "DRAFT"
+  - "SCHEDULED"
+  - "IN_PROGRESS"
+  - "READY_FOR_APPROVAL"
+  - "PUBLISHED"
+
+state_expectations:
+  loading: "Loading academic curriculum and program structure..."
+  empty: "No departments or examination schedules configured for this semester."
+  error: "Failed to load academic records."
+
+audit_requirements:
+  log_curriculum_modifications: true
+  log_publication_signoff: true
+
+security_requirements:
+  enforce_institution_isolation: true

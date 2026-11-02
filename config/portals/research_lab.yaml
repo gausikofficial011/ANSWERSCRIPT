@@ -1,0 +1,96 @@
+schema_version: "1.0.0"
+
+portal:
+  id: "research_lab"
+  display_name: "AI Research & Model Governance Lab"
+  route: "/portals/research-lab"
+  description: "MLOps command center: local dataset manifests, model registry, hardware benchmark telemetry, lightweight training jobs, champion/challenger comparisons"
+  allowed_roles:
+    - "super_admin"
+    - "academic_admin"
+    - "researcher"
+  required_permissions:
+    - "research:view_benchmarks"
+    - "research:train_models"
+
+layout:
+  type: "lab_console"
+  sidebar_width: 250
+  header_actions:
+    - id: "run_benchmark"
+      label: "Run Hardware Benchmark"
+      icon: "Gauge"
+    - id: "train_small_model"
+      label: "Train Plagiarism Classifier"
+      icon: "Cpu"
+
+navigation:
+  - id: "hardware"
+    label: "Local Hardware Capacity"
+    icon: "HardDrive"
+    target: "hardware"
+  - id: "models"
+    label: "Model Registry & Benchmarks"
+    icon: "Layers"
+    target: "models"
+  - id: "datasets"
+    label: "Academic Datasets Manifest"
+    icon: "Database"
+    target: "datasets"
+  - id: "experiments"
+    label: "Training Jobs & Checkpoints"
+    icon: "Terminal"
+    target: "experiments"
+  - id: "champion"
+    label: "Champion vs. Challenger"
+    icon: "GitCompare"
+    target: "champion"
+
+features:
+  hardware_resource_telemetry: true
+  dataset_checksum_verification: true
+  dry_run_download_protection: true
+  reproducible_benchmark_runs: true
+  cpu_bounded_training_pipeline: true
+  champion_model_rollback: true
+
+ui_components:
+  hardware_monitor_card: "HardwareCapacityMonitor"
+  model_benchmark_table: "ModelBenchmarkTelemetryTable"
+  dataset_manifest_grid: "DatasetManifestCatalogGrid"
+  training_job_console: "TrainingJobConsole"
+  champion_challenger_card: "ChampionChallengerComparison"
+
+api_requirements:
+  endpoints:
+    - method: "GET"
+      path: "/api/v1/research/hardware"
+    - method: "GET"
+      path: "/api/v1/research/models"
+    - method: "GET"
+      path: "/api/v1/research/datasets"
+    - method: "POST"
+      path: "/api/v1/research/benchmark"
+    - method: "POST"
+      path: "/api/v1/research/train"
+
+workflow_states:
+  - "IDLE"
+  - "BENCHMARKING"
+  - "TRAINING"
+  - "EVALUATING"
+  - "COMPLETED"
+
+state_expectations:
+  loading: "Reading local hardware registers, model checkpoints, and dataset catalogs..."
+  empty: "No active training experiments in flight. Local models are verified and calibrated."
+  error: "Error accessing ML research telemetry."
+
+audit_requirements:
+  log_model_promotions: true
+  log_training_invocations: true
+  record_training_hyperparameters_and_seeds: true
+
+security_requirements:
+  strict_disk_guardrail_enforcement: true
+  forbid_unsupervised_weight_replacement: true

@@ -95,57 +95,85 @@ def evaluate_answer_sheet(
     from app.application.use_cases.evaluations.evaluate_answer_sheet_use_case import EvaluateAnswerSheetUseCase
 
     async def _execute():
-        async with AsyncSessionLocal() as session:
-            try:
-                sheet_id = UUID(answer_sheet_id)
-                answer_sheet_repo = SqlAnswerSheetRepository(session)
-                question_mapping_repo = SqlQuestionMappingRepository(session)
-                audit_repo = SqlAuditLogRepository(session)
-                evaluation_repo = SqlEvaluationRepository(session)
-                revision_repo = SqlEvaluationRevisionRepository(session)
-                criterion_eval_repo = SqlCriterionEvaluationRepository(session)
-                question_repo = SqlQuestionRepository(session)
-                model_answer_repo = SqlModelAnswerRepository(session)
-                rubric_repo = SqlRubricRepository(session)
+        from app.infrastructure.persistence.database import get_isolated_session_maker
+        session_maker, engine_to_dispose = get_isolated_session_maker()
+        try:
+            async with session_maker() as session:
+                try:
+                    sheet_id = UUID(answer_sheet_id)
+                    answer_sheet_repo = SqlAnswerSheetRepository(session)
+                    question_mapping_repo = SqlQuestionMappingRepository(session)
+                    audit_repo = SqlAuditLogRepository(session)
+                    evaluation_repo = SqlEvaluationRepository(session)
+                    revision_repo = SqlEvaluationRevisionRepository(session)
+                    criterion_eval_repo = SqlCriterionEvaluationRepository(session)
+                    question_repo = SqlQuestionRepository(session)
+                    model_answer_repo = SqlModelAnswerRepository(session)
+                    rubric_repo = SqlRubricRepository(session)
 
-                evaluate_answer_use_case = EvaluateAnswerUseCase(
-                    evaluation_repo=evaluation_repo,
-                    revision_repo=revision_repo,
-                    criterion_eval_repo=criterion_eval_repo,
-                    question_mapping_repo=question_mapping_repo,
-                    question_repo=question_repo,
-                    model_answer_repo=model_answer_repo,
-                    rubric_repo=rubric_repo,
-                    audit_repo=audit_repo,
-                    embedder=self.embedder
-                )
+                    evaluate_answer_use_case = EvaluateAnswerUseCase(
+                        evaluation_repo=evaluation_repo,
+                        revision_repo=revision_repo,
+                        criterion_eval_repo=criterion_eval_repo,
+                        question_mapping_repo=question_mapping_repo,
+                        question_repo=question_repo,
+                        model_answer_repo=model_answer_repo,
+                        rubric_repo=rubric_repo,
+                        audit_repo=audit_repo,
+                        embedder=self.embedder
+                    )
 
-                use_case = EvaluateAnswerSheetUseCase(
-                    answer_sheet_repo=answer_sheet_repo,
-                    question_mapping_repo=question_mapping_repo,
-                    audit_repo=audit_repo,
-                    evaluate_answer_use_case=evaluate_answer_use_case
-                )
+                    use_case = EvaluateAnswerSheetUseCase(
+                        answer_sheet_repo=answer_sheet_repo,
+                        question_mapping_repo=question_mapping_repo,
+                        audit_repo=audit_repo,
+                        evaluate_answer_use_case=evaluate_answer_use_case
+                    )
 
-                result = await use_case.execute(sheet_id)
-                await session.commit()
-                # Trigger plagiarism check asynchronously after successful evaluation
-                detect_plagiarism_task.delay(answer_sheet_id)
-                return result
-            except Exception as e:
-                await session.rollback()
-                logger.error(f"Error in evaluation Celery task execution: {str(e)}")
-                raise e
+                    result = await use_case.execute(sheet_id)
+                    await session.commit()
+                    # Trigger plagiarism check asynchronously after successful evaluation
+                    detect_plagiarism_task.delay(answer_sheet_id)
+                    return result
+                except Exception as e:
+                    await session.rollback()
+                    logger.error(f"Error in evaluation Celery task execution: {str(e)}")
+                    raise e
+        finally:
+            await engine_to_dispose.dispose()
 
-    try:
+    import threading
+
+    def run_coro_safely(coro):
         try:
             loop = asyncio.get_event_loop()
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            
-        return loop.run_until_complete(_execute())
 
+        if loop.is_running():
+            result = [None]
+            exception = [None]
+            def _target():
+                new_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(new_loop)
+                try:
+                    result[0] = new_loop.run_until_complete(coro)
+                except Exception as e:
+                    exception[0] = e
+                finally:
+                    new_loop.close()
+            t = threading.Thread(target=_target)
+            t.start()
+            t.join()
+            if exception[0] is not None:
+                raise exception[0]
+            return result[0]
+        else:
+            return loop.run_until_complete(coro)
+
+    try:
+        return run_coro_safely(_execute())
     except Exception as exc:
         logger.error(f"Evaluation Task failed for sheet {answer_sheet_id}, retrying... Error: {str(exc)}")
         try:
@@ -174,40 +202,71 @@ def evaluate_exam_batch(self: "EvaluationTask", exam_id: str) -> dict:
     import asyncio
     from uuid import UUID
     from sqlalchemy import select
-    from app.infrastructure.persistence.database import AsyncSessionLocal
-    from app.infrastructure.persistence.models.answer_sheet_model import AnswerSheetModel
+    from app.infrastructure.persistence.models.answer_sheet_model import AnswerSheetModel, AnswerSheetStatus
 
     async def _execute():
-        async with AsyncSessionLocal() as session:
-            exam_uuid = UUID(exam_id)
-            # Find all answer sheets for the exam
-            query = select(AnswerSheetModel).where(
-                AnswerSheetModel.exam_id == exam_uuid,
-                AnswerSheetModel.deleted_at.is_(None)
-            )
-            result = await session.execute(query)
-            sheets = result.scalars().all()
-            
-            sheets_queued = 0
-            for sheet in sheets:
-                # Trigger evaluate_answer_sheet
-                evaluate_answer_sheet.delay(str(sheet.id))
-                sheets_queued += 1
-                
-            return {
-                "exam_id": str(exam_uuid),
-                "sheets_queued": sheets_queued
-            }
+        from app.infrastructure.persistence.database import get_isolated_session_maker
+        session_maker, engine_to_dispose = get_isolated_session_maker()
+        try:
+            async with session_maker() as session:
+                try:
+                    exam_uuid = UUID(exam_id)
+                    query = select(AnswerSheetModel).where(
+                        AnswerSheetModel.exam_id == exam_uuid,
+                        AnswerSheetModel.status == AnswerSheetStatus.UPLOADED,
+                        AnswerSheetModel.deleted_at.is_(None)
+                    )
+                    result = await session.execute(query)
+                    sheets = result.scalars().all()
+                    
+                    sheets_queued = 0
+                    for sheet in sheets:
+                        # Trigger evaluate_answer_sheet
+                        evaluate_answer_sheet.delay(str(sheet.id))
+                        sheets_queued += 1
+                        
+                    return {
+                        "exam_id": str(exam_uuid),
+                        "sheets_queued": sheets_queued
+                    }
+                except Exception as e:
+                    await session.rollback()
+                    raise e
+        finally:
+            await engine_to_dispose.dispose()
 
-    try:
+    import threading
+
+    def run_coro_safely(coro):
         try:
             loop = asyncio.get_event_loop()
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            
-        return loop.run_until_complete(_execute())
 
+        if loop.is_running():
+            result = [None]
+            exception = [None]
+            def _target():
+                new_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(new_loop)
+                try:
+                    result[0] = new_loop.run_until_complete(coro)
+                except Exception as e:
+                    exception[0] = e
+                finally:
+                    new_loop.close()
+            t = threading.Thread(target=_target)
+            t.start()
+            t.join()
+            if exception[0] is not None:
+                raise exception[0]
+            return result[0]
+        else:
+            return loop.run_until_complete(coro)
+
+    try:
+        return run_coro_safely(_execute())
     except Exception as exc:
         logger.error(f"Batch Evaluation Task failed for exam {exam_id}. Error: {str(exc)}")
         raise exc
@@ -250,41 +309,69 @@ def detect_plagiarism_task(
     from app.application.use_cases.plagiarism.detect_answer_sheet_plagiarism_use_case import DetectAnswerSheetPlagiarismUseCase
 
     async def _execute():
-        async with AsyncSessionLocal() as session:
-            try:
-                sheet_id = UUID(answer_sheet_id)
-                plagiarism_score_service = PlagiarismScoreService(
-                    semantic_service=None,  # Will lazy load embedding model in celery worker
-                    lexical_service=None,
-                    overlap_service=None
-                )
-                use_case = DetectAnswerSheetPlagiarismUseCase(
-                    answer_sheet_repo=SqlAnswerSheetRepository(session),
-                    question_mapping_repo=SqlQuestionMappingRepository(session),
-                    plagiarism_repo=SqlPlagiarismRepository(session),
-                    plagiarism_similarity_repo=SqlPlagiarismSimilarityRepository(session),
-                    notification_repo=SqlNotificationRepository(session),
-                    audit_repo=SqlAuditLogRepository(session),
-                    exam_repo=SqlExamRepository(session),
-                    plagiarism_score_service=plagiarism_score_service
-                )
-                result = await use_case.execute(sheet_id)
-                await session.commit()
-                return result
-            except Exception as e:
-                await session.rollback()
-                logger.error(f"Error in plagiarism detection Celery task: {str(e)}")
-                raise e
+        from app.infrastructure.persistence.database import get_isolated_session_maker
+        session_maker, engine_to_dispose = get_isolated_session_maker()
+        try:
+            async with session_maker() as session:
+                try:
+                    sheet_id = UUID(answer_sheet_id)
+                    plagiarism_score_service = PlagiarismScoreService(
+                        semantic_service=None,  # Will lazy load embedding model in celery worker
+                        lexical_service=None,
+                        overlap_service=None
+                    )
+                    use_case = DetectAnswerSheetPlagiarismUseCase(
+                        answer_sheet_repo=SqlAnswerSheetRepository(session),
+                        question_mapping_repo=SqlQuestionMappingRepository(session),
+                        plagiarism_repo=SqlPlagiarismRepository(session),
+                        plagiarism_similarity_repo=SqlPlagiarismSimilarityRepository(session),
+                        notification_repo=SqlNotificationRepository(session),
+                        audit_repo=SqlAuditLogRepository(session),
+                        exam_repo=SqlExamRepository(session),
+                        plagiarism_score_service=plagiarism_score_service
+                    )
+                    result = await use_case.execute(sheet_id)
+                    await session.commit()
+                    return result
+                except Exception as e:
+                    await session.rollback()
+                    logger.error(f"Error in plagiarism detection Celery task: {str(e)}")
+                    raise e
+        finally:
+            await engine_to_dispose.dispose()
 
-    try:
+    import threading
+
+    def run_coro_safely(coro):
         try:
             loop = asyncio.get_event_loop()
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            
-        return loop.run_until_complete(_execute())
 
+        if loop.is_running():
+            result = [None]
+            exception = [None]
+            def _target():
+                new_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(new_loop)
+                try:
+                    result[0] = new_loop.run_until_complete(coro)
+                except Exception as e:
+                    exception[0] = e
+                finally:
+                    new_loop.close()
+            t = threading.Thread(target=_target)
+            t.start()
+            t.join()
+            if exception[0] is not None:
+                raise exception[0]
+            return result[0]
+        else:
+            return loop.run_until_complete(coro)
+
+    try:
+        return run_coro_safely(_execute())
     except Exception as exc:
         logger.error(f"Plagiarism detection task failed for sheet {answer_sheet_id}. Error: {str(exc)}")
         try:

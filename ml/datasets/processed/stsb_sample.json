@@ -1,0 +1,36 @@
+{
+  "dataset": "Semantic Textual Similarity Benchmark (STSb sample)",
+  "total_pairs": 5,
+  "pairs": [
+    {
+      "sentence_a": "A database index speeds up search queries on large tables.",
+      "sentence_b": "Indexes enhance query performance by allowing faster row retrieval.",
+      "gold_similarity": 4.6,
+      "normalized_gold": 0.92
+    },
+    {
+      "sentence_a": "A process is an active program with memory registers and PC.",
+      "sentence_b": "Processes are running instances of programs containing execution context.",
+      "gold_similarity": 4.4,
+      "normalized_gold": 0.88
+    },
+    {
+      "sentence_a": "The relational database model was proposed by Edgar Codd in 1970.",
+      "sentence_b": "Relational calculus and tables were invented by Edgar F. Codd.",
+      "gold_similarity": 4.2,
+      "normalized_gold": 0.84
+    },
+    {
+      "sentence_a": "Virtual memory allows computers to address more memory than physical RAM.",
+      "sentence_b": "Photosynthesis is the process by which green plants make food from sunlight.",
+      "gold_similarity": 0.0,
+      "normalized_gold": 0.00
+    },
+    {
+      "sentence_a": "TCP guarantees reliable delivery with packet sequencing and retransmission.",
+      "sentence_b": "UDP is connectionless and does not guarantee packet delivery or order.",
+      "gold_similarity": 1.2,
+      "normalized_gold": 0.24
+    }
+  ]
+}

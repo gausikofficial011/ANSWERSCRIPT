@@ -58,6 +58,12 @@ class RubricEvaluationService:
             )
             kw_score = keyword_results["keyword_score"]
 
+            # Apply soft keyword gating to the criterion semantic score if expected keywords exist
+            if criterion.expected_keywords:
+                # Multiplier ranges from 0.25 (no keywords) to 1.0 (all keywords)
+                criterion_multiplier = 0.25 + 0.75 * kw_score
+                sim_score = sim_score * criterion_multiplier
+
             # 3. Combine scores
             # Use weights (defaults are 0.7 semantic, 0.3 keywords)
             combined_score = (sim_score * semantic_weight) + (kw_score * keyword_weight)

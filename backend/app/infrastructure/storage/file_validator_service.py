@@ -10,10 +10,11 @@ from app.domain.exceptions.file_exceptions import (
     FileTooLargeException,
     UnsupportedFileTypeException,
     EmptyFileException,
+    CorruptedFileException,
 )
 
-# 50 MB limit requested by user for answer sheets
-MAX_ANSWER_SHEET_SIZE_BYTES = 50 * 1024 * 1024
+from app.config import get_settings
+
 ALLOWED_EXTENSIONS = frozenset({".pdf", ".png", ".jpg", ".jpeg"})
 ALLOWED_MIME_TYPES = frozenset({"application/pdf", "image/png", "image/jpeg"})
 
@@ -28,14 +29,17 @@ class FileValidatorService:
         Validate an uploaded file. Returns the resolved MIME type if valid, otherwise raises.
         """
         size_bytes = len(file_data)
+        settings = get_settings()
+        max_size = settings.max_upload_size_bytes
         
         # 1. Empty File Rejection
         if size_bytes == 0:
             raise EmptyFileException(filename)
 
-        # 2. Size Constraint Rejection (50 MB)
-        if size_bytes > MAX_ANSWER_SHEET_SIZE_BYTES:
-            raise FileTooLargeException(filename, size_bytes, MAX_ANSWER_SHEET_SIZE_BYTES)
+        # 2. Size Constraint Rejection
+        if size_bytes > max_size:
+            raise FileTooLargeException(filename, size_bytes, max_size)
+
 
         # 3. Extension Rejection
         ext = Path(filename).suffix.lower()
@@ -54,5 +58,25 @@ class FileValidatorService:
                 detected_mime or "unknown",
                 list(ALLOWED_MIME_TYPES)
             )
+
+        # 5. Magic Byte Signature Validation
+        if detected_mime == "application/pdf":
+            if not file_data.startswith(b"%PDF-"):
+                raise CorruptedFileException(
+                    filename,
+                    "invalid PDF binary signature"
+                )
+        elif detected_mime == "image/png":
+            if not file_data.startswith(b"\x89PNG"):
+                raise CorruptedFileException(
+                    filename,
+                    "invalid PNG binary signature"
+                )
+        elif detected_mime == "image/jpeg":
+            if not file_data.startswith(b"\xff\xd8\xff"):
+                raise CorruptedFileException(
+                    filename,
+                    "invalid JPEG binary signature"
+                )
 
         return detected_mime

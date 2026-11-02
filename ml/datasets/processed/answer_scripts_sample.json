@@ -1,0 +1,38 @@
+{
+  "dataset": "gopika13/answer_scripts (sample fixture)",
+  "total_samples": 4,
+  "samples": [
+    {
+      "id": "sample-01",
+      "question_id": "q1",
+      "ground_truth_transcript": "Database Management System (DBMS) is software that manages databases. Key components include storage engine, query processor, and transaction manager. ACID properties guarantee consistency.",
+      "ocr_extracted_text": "Database Management System DBMS is software that manages databases. Key components include storage engine, query processor, and transaction manager. ACID properties guarantee consistency.",
+      "character_error_rate": 0.015,
+      "word_error_rate": 0.04
+    },
+    {
+      "id": "sample-02",
+      "question_id": "q2",
+      "ground_truth_transcript": "Normalization is the process of organizing data to minimize redundancy and dependency by dividing large tables into smaller related tables.",
+      "ocr_extracted_text": "Normalization is the process of organizing data to minimize redundancy and dependency by deviding large tables into smaller related tables.",
+      "character_error_rate": 0.007,
+      "word_error_rate": 0.05
+    },
+    {
+      "id": "sample-03",
+      "question_id": "q3",
+      "ground_truth_transcript": "Operating System provides CPU scheduling, memory management, file systems, and device drivers for application programs.",
+      "ocr_extracted_text": "Operating System provides CPU scheduling, memry management, file systems, and device drivers for application programs.",
+      "character_error_rate": 0.008,
+      "word_error_rate": 0.06
+    },
+    {
+      "id": "sample-04",
+      "question_id": "q4",
+      "ground_truth_transcript": "A process has states: New, Ready, Running, Waiting, and Terminated. Context switching saves process state in PCB.",
+      "ocr_extracted_text": "A process has states: New, Ready, Running, Waiting, and Terminated. Context switching saves process state in PCB.",
+      "character_error_rate": 0.000,
+      "word_error_rate": 0.00
+    }
+  ]
+}

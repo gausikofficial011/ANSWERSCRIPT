@@ -28,6 +28,8 @@ class Evaluation:
     verified_at: datetime | None = None
     evaluation_model: str | None = None
     evaluation_confidence: float | None = None
+    confidence_score: float | None = None
+    low_confidence_flag: bool = False
     explanation: dict | None = None
     id: uuid.UUID = field(default_factory=uuid.uuid4)
     created_at: datetime = field(default_factory=datetime.now)

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Evaluation Detailed Report</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm;
+      @bottom-right {
+        content: "Page " counter(page) " of " counter(pages);
+        font-family: Arial, sans-serif;
+        font-size: 8pt;
+        color: #555;
+      }
+    }
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 10pt;
+      line-height: 1.4;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 25px;
+      border-bottom: 2px solid #333;
+      padding-bottom: 10px;
+    }
+    .header h1 {
+      font-size: 18pt;
+      margin: 0 0 5px 0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .header p {
+      margin: 0;
+      font-size: 10pt;
+      color: #555;
+    }
+    .info-section {
+      margin-bottom: 20px;
+      width: 100%;
+    }
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+    }
+    .info-table td {
+      padding: 4px 0;
+      vertical-align: top;
+    }
+    .info-label {
+      font-weight: bold;
+      width: 18%;
+      color: #555;
+    }
+    .info-value {
+      width: 32%;
+    }
+    .summary-box {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 12px;
+      margin-bottom: 25px;
+      display: table;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .summary-item {
+      display: table-cell;
+      text-align: center;
+      width: 25%;
+    }
+    .summary-label {
+      font-size: 8pt;
+      text-transform: uppercase;
+      color: #6c757d;
+      margin-bottom: 3px;
+    }
+    .summary-value {
+      font-size: 14pt;
+      font-weight: bold;
+      color: #333;
+    }
+    .section-title {
+      font-size: 12pt;
+      border-bottom: 1px solid #dee2e6;
+      padding-bottom: 5px;
+      margin-top: 25px;
+      margin-bottom: 10px;
+      color: #333;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .details-table, .revision-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 25px;
+    }
+    .details-table th, .details-table td, .revision-table th, .revision-table td {
+      border: 1px solid #dee2e6;
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .details-table th, .revision-table th {
+      background-color: #f1f3f5;
+      font-weight: bold;
+      color: #495057;
+      font-size: 9pt;
+      text-transform: uppercase;
+    }
+    .details-table tr:nth-child(even), .revision-table tr:nth-child(even) {
+      background-color: #fafbfa;
+    }
+    .explanation-box {
+      background-color: #fafafa;
+      border-left: 4px solid #0d6efd;
+      padding: 10px 15px;
+      margin-bottom: 15px;
+    }
+    .explanation-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #495057;
+    }
+    .explanation-content {
+      margin: 0;
+      font-size: 9.5pt;
+      color: #333;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      font-size: 8pt;
+      font-weight: bold;
+      border-radius: 3px;
+    }
+    .badge-verified {
+      background-color: #d1e7dd;
+      color: #0f5132;
+      border: 1px solid #badbcc;
+    }
+    .badge-unverified {
+      background-color: #fff3cd;
+      color: #664d03;
+      border: 1px solid #ffecb5;
+    }
+    .footer-section {
+      margin-top: 50px;
+      width: 100%;
+    }
+    .signature-container {
+      width: 100%;
+      display: table;
+      margin-top: 40px;
+    }
+    .signature-block {
+      display: table-cell;
+      width: 50%;
+      text-align: center;
+    }
+    .signature-line {
+      width: 60%;
+      border-bottom: 1px solid #333;
+      margin: 0 auto 5px auto;
+    }
+    .signature-title {
+      font-size: 9pt;
+      color: #555;
+    }
+    .metadata {
+      font-size: 8pt;
+      color: #6c757d;
+      text-align: left;
+      margin-top: 20px;
+      border-top: 1px dashed #dee2e6;
+      padding-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>{{ institution_name }}</h1>
+    <p>Detailed Candidate Evaluation Report</p>
+  </div>
+
+  <div class="info-section">
+    <table class="info-table">
+      <tr>
+        <td class="info-label">Exam Name:</td>
+        <td class="info-value" style="font-weight: bold;">{{ exam_title }}</td>
+        <td class="info-label">Evaluation Date:</td>
+        <td class="info-value">{{ evaluation_date }}</td>
+      </tr>
+      <tr>
+        <td class="info-label">Student Name:</td>
+        <td class="info-value">{{ student_name }}</td>
+        <td class="info-label">Student Number:</td>
+        <td class="info-value">{{ student_number }}</td>
+      </tr>
+      <tr>
+        <td class="info-label">Verification Status:</td>
+        <td class="info-value">
+          {% if is_verified %}
+          <span class="badge badge-verified">VERIFIED</span>
+          {% else %}
+          <span class="badge badge-unverified">PENDING TEACHER REVIEW</span>
+          {% endif %}
+        </td>
+        <td class="info-label">Verification ID:</td>
+        <td class="info-value" style="font-family: monospace; font-size: 9pt;">{{ verification_id }}</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="summary-box">
+    <div class="summary-item">
+      <div class="summary-label">AI Score</div>
+      <div class="summary-value">{{ "%.1f"|format(ai_score) if ai_score is not none else "-" }}</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Teacher Score</div>
+      <div class="summary-value">{{ "%.1f"|format(teacher_score) if teacher_score is not none else "N/A" }}</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Final Score</div>
+      <div class="summary-value" style="color: #0d6efd;">{{ "%.1f"|format(final_score) if final_score is not none else "-" }}</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Max Marks</div>
+      <div class="summary-value">{{ max_marks }}</div>
+    </div>
+  </div>
+
+  <h2 class="section-title">Criteria Breakdown</h2>
+  <table class="details-table">
+    <thead>
+      <tr>
+        <th style="width: 25%;">Criterion Name</th>
+        <th style="width: 10%; text-align: center;">Weight</th>
+        <th style="width: 12%; text-align: center;">AI Score</th>
+        <th style="width: 15%; text-align: center;">Teacher Score</th>
+        <th>Feedback</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ce in criteria_evaluations %}
+      <tr>
+        <td style="font-weight: bold;">{{ ce.criterion_name }}</td>
+        <td style="text-align: center;">{{ "%.2f"|format(ce.weight) }}</td>
+        <td style="text-align: center;">{{ "%.1f"|format(ce.ai_score) if ce.ai_score is not none else "-" }} / {{ ce.max_marks }}</td>
+        <td style="text-align: center;">{{ "%.1f"|format(ce.teacher_score) if ce.teacher_score is not none else "-" }}</td>
+        <td>
+          {% if ce.teacher_feedback %}
+            <div style="font-style: italic; color: #555; margin-bottom: 4px;">{{ ce.teacher_feedback }}</div>
+          {% endif %}
+          {% if ce.ai_feedback %}
+            <div style="font-size: 8.5pt; color: #6c757d;">AI feedback: {{ ce.ai_feedback }}</div>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5" style="text-align: center; color: #888; padding: 15px;">
+          No criterion breakdown metrics available.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2 class="section-title">AI Explanation & Analysis</h2>
+  <div class="explanation-box" style="border-left-color: #198754;">
+    <div class="explanation-title">Strengths</div>
+    <p class="explanation-content">{{ explanation_strengths or "No specific strengths identified." }}</p>
+  </div>
+  <div class="explanation-box" style="border-left-color: #dc3545;">
+    <div class="explanation-title">Weaknesses</div>
+    <p class="explanation-content">{{ explanation_weaknesses or "No specific weaknesses identified." }}</p>
+  </div>
+  <div class="explanation-box" style="border-left-color: #ffc107;">
+    <div class="explanation-title">Missing Topics</div>
+    <p class="explanation-content">{{ explanation_missing_topics or "No missing topics identified." }}</p>
+  </div>
+  <div class="explanation-box" style="border-left-color: #0d6efd;">
+    <div class="explanation-title">Suggestions</div>
+    <p class="explanation-content">{{ explanation_suggestions or "No specific improvement suggestions." }}</p>
+  </div>
+
+  <h2 class="section-title">Revision History</h2>
+  <table class="revision-table">
+    <thead>
+      <tr>
+        <th style="width: 12%; text-align: center;">Rev #</th>
+        <th style="width: 20%; text-align: center;">Score Change</th>
+        <th style="width: 25%;">Reviewer</th>
+        <th style="width: 23%;">Timestamp</th>
+        <th>Reason / Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for rev in revision_history %}
+      <tr>
+        <td style="text-align: center; font-weight: bold;">{{ rev.revision_number }}</td>
+        <td style="text-align: center;">
+          {{ "%.1f"|format(rev.previous_score) if rev.previous_score is not none else "-" }}
+          &rarr; 
+          {{ "%.1f"|format(rev.new_score) }}
+        </td>
+        <td>{{ rev.reviewer_name }}</td>
+        <td>{{ rev.timestamp }}</td>
+        <td>{{ rev.reason }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5" style="text-align: center; color: #888; padding: 15px;">
+          No revision history recorded for this evaluation.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="footer-section">
+    <div class="signature-container">
+      <div class="signature-block">
+        <div class="signature-line" style="margin-top: 30px;"></div>
+        <div class="signature-title">Course Instructor / Examiner</div>
+      </div>
+      <div class="signature-block">
+        <div class="signature-line" style="margin-top: 30px;"></div>
+        <div class="signature-title">Authorized Institution Seal</div>
+      </div>
+    </div>
+    <div class="metadata">
+      Note: This document is officially compiled from the AI Answer Evaluation System grading log. 
+    </div>
+  </div>
+
+</body>
+</html>

@@ -23,6 +23,10 @@ from app.domain.services.rubric_scoring_service import RubricScoringService
 from app.core.constants import AnswerSheetStatus, AuditAction, AuditStatus
 from app.domain.exceptions.domain_exception import EntityNotFoundException, BusinessRuleViolationException
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.application.services.final_result_synchronization_service import FinalResultSynchronizationService
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,7 +43,8 @@ class VerifyEvaluationUseCase:
         criterion_eval_repo: CriterionEvaluationRepository,
         rubric_repo: RubricRepository,
         answer_sheet_repo: AnswerSheetRepository,
-        audit_repo: AuditLogRepository
+        audit_repo: AuditLogRepository,
+        sync_service: FinalResultSynchronizationService | None = None
     ) -> None:
         self.evaluation_repo = evaluation_repo
         self.revision_repo = revision_repo
@@ -47,6 +52,7 @@ class VerifyEvaluationUseCase:
         self.rubric_repo = rubric_repo
         self.answer_sheet_repo = answer_sheet_repo
         self.audit_repo = audit_repo
+        self.sync_service = sync_service
 
     async def execute(
         self,
@@ -173,5 +179,9 @@ class VerifyEvaluationUseCase:
                     new_values={"status": AnswerSheetStatus.VERIFIED}
                 )
                 await self.audit_repo.save(sheet_verified_log)
+
+                # Sync scores immediately
+                if self.sync_service:
+                    await self.sync_service.sync(sheet.id)
 
         return saved_evaluation

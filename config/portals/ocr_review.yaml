@@ -1,0 +1,100 @@
+schema_version: "1.0.0"
+
+portal:
+  id: "ocr_review"
+  display_name: "OCR & Document Review Studio"
+  route: "/portals/ocr-review"
+  description: "Split-screen PDF raster canvas, interactive OCR bounding boxes, transcript correction, page rotation, question re-segmentation"
+  allowed_roles:
+    - "super_admin"
+    - "academic_admin"
+    - "teacher"
+    - "ocr_reviewer"
+    - "evaluator"
+  required_permissions:
+    - "ocr:view_raw"
+    - "ocr:edit_transcript"
+
+layout:
+  type: "split_screen"
+  sidebar_width: 240
+  left_panel_width_percent: 50
+  right_panel_width_percent: 50
+  header_actions:
+    - id: "rotate_clockwise"
+      label: "Rotate 90°"
+      icon: "RotateCw"
+    - id: "reprocess_ocr"
+      label: "Reprocess Page"
+      icon: "RefreshCw"
+    - id: "save_corrections"
+      label: "Save Transcript"
+      icon: "Save"
+
+navigation:
+  - id: "sheets"
+    label: "Answer Sheets Queue"
+    icon: "Folder"
+    target: "sheets"
+  - id: "split_viewer"
+    label: "Document Split Inspector"
+    icon: "Columns"
+    target: "split_viewer"
+  - id: "mappings"
+    label: "Question Segmentation"
+    icon: "GitBranch"
+    target: "mappings"
+  - id: "unmapped"
+    label: "Unmapped Regions"
+    icon: "AlertCircle"
+    target: "unmapped"
+
+features:
+  split_screen_canvas: true
+  bounding_box_overlay: true
+  synchronized_text_highlight: true
+  manual_transcript_editing: true
+  question_resegmentation: true
+  image_rotation_and_zoom: true
+  confidence_color_mapping: true
+
+ui_components:
+  canvas_viewer: "DocumentCanvasViewer"
+  ocr_overlay: "BoundingBoxOverlay"
+  transcript_editor: "CorrectableTranscriptPane"
+  segmentation_panel: "QuestionSegmentationPane"
+  engine_benchmark_view: "EngineComparisonCard"
+
+api_requirements:
+  endpoints:
+    - method: "GET"
+      path: "/api/v1/answer-sheets"
+    - method: "GET"
+      path: "/api/v1/answer-sheets/{sheet_id}"
+    - method: "GET"
+      path: "/api/v1/answer-sheets/{sheet_id}/pages"
+    - method: "GET"
+      path: "/api/v1/answer-sheets/{sheet_id}/ocr"
+    - method: "PATCH"
+      path: "/api/v1/question-mappings/{mapping_id}"
+
+workflow_states:
+  - "RASTERISED"
+  - "OCR_PROCESSING"
+  - "OCR_REVIEW_PENDING"
+  - "TRANSCRIPT_VERIFIED"
+  - "SEGMENTATION_VERIFIED"
+
+state_expectations:
+  loading: "Rasterising PDF pages and loading OCR coordinate bounding boxes..."
+  empty: "No pending answer sheets requiring OCR or segmentation review."
+  error: "Error rendering document page or extracting OCR regions."
+
+audit_requirements:
+  log_manual_transcript_edits: true
+  log_question_reassignments: true
+  preserve_original_ocr_provenance: true
+
+security_requirements:
+  prevent_path_traversal: true
+  enforce_tenant_storage_isolation: true

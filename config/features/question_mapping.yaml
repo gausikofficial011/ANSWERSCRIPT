@@ -1,0 +1,20 @@
+schema_version: "1.0.0"
+
+feature:
+  id: "question_mapping"
+  name: "Answer Script Question Segmentation & Alignment"
+  enabled: true
+
+detection_rules:
+  regex_patterns:
+    - "(?i)(?:question|q)[\\s.:#-]*([0-9]{1,2})[\\s.:)]*([a-z])?"
+    - "(?i)(?:ans(?:wer)?)[\\s.:#-]*([0-9]{1,2})[\\s.:)]*([a-z])?"
+  support_roman_numerals: true
+  support_alphabetic_subquestions: true
+  min_heading_font_scale: 1.1
+
+segmentation_logic:
+  allow_multi_page_answers: true
+  detect_continuation_markers: true
+  require_human_confirmation_below_confidence: 0.70
+  enable_manual_split_and_merge: true

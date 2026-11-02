@@ -27,9 +27,7 @@ from app.infrastructure.persistence.models import (
 )
 from app.core.constants import ExamStatus, QuestionType, GradingMode
 
-# Pre-hashed password for "password123" (bcrypt work factor 12)
-DEFAULT_HASHED_PASSWORD = "$2b$12$EixZaYVK1YiYi1x17Ryod.n0H5GQ2M74J4R4q8R4QzY0.4fW6q.K6"
-
+from app.infrastructure.auth.password_service import PasswordService
 
 async def seed_database(session: AsyncSession) -> None:
     print("Starting database seeding...")
@@ -37,6 +35,7 @@ async def seed_database(session: AsyncSession) -> None:
     # 1. Seed Roles
     admin_role_id = uuid.UUID("11111111-1111-1111-1111-111111111111")
     teacher_role_id = uuid.UUID("22222222-2222-2222-2222-222222222222")
+    student_role_id = uuid.UUID("33333333-1111-1111-1111-111111111111")
 
     admin_role = RoleModel(
         id=admin_role_id,
@@ -48,21 +47,40 @@ async def seed_database(session: AsyncSession) -> None:
         name="teacher",
         description="Teacher/Evaluator with access to subjects and exams"
     )
+    student_role = RoleModel(
+        id=student_role_id,
+        name="student",
+        description="Student role"
+    )
 
-    session.add_all([admin_role, teacher_role])
+    session.add_all([admin_role, teacher_role, student_role])
     await session.flush()
-    print("✓ Seeding roles completed.")
+    print("[OK] Seeding roles completed.")
 
     # 2. Seed Users
+    admin_hash = PasswordService.hash_password("Admin@1234")
+    teacher_hash = PasswordService.hash_password("Teacher@1234")
+
     admin_user_id = uuid.UUID("33333333-3333-3333-3333-333333333333")
+    admin_eval_id = uuid.UUID("33333333-3333-3333-3333-333333333334")
     teacher_user_id = uuid.UUID("44444444-4444-4444-4444-444444444444")
 
     admin_user = UserModel(
         id=admin_user_id,
         email="admin@amaes.edu",
         username="admin",
-        hashed_password=DEFAULT_HASHED_PASSWORD,
+        hashed_password=admin_hash,
         full_name="System Administrator",
+        role_id=admin_role_id,
+        is_active=True,
+        is_verified=True
+    )
+    admin_eval_user = UserModel(
+        id=admin_eval_id,
+        email="admin@eval.com",
+        username="admin_eval",
+        hashed_password=admin_hash,
+        full_name="Evaluation Admin",
         role_id=admin_role_id,
         is_active=True,
         is_verified=True
@@ -71,14 +89,25 @@ async def seed_database(session: AsyncSession) -> None:
         id=teacher_user_id,
         email="teacher@amaes.edu",
         username="teacher",
-        hashed_password=DEFAULT_HASHED_PASSWORD,
+        hashed_password=teacher_hash,
         full_name="Dr. Jane Smith",
         role_id=teacher_role_id,
         is_active=True,
         is_verified=True
     )
 
-    session.add_all([admin_user, teacher_user])
+    system_user = UserModel(
+        id=uuid.UUID("00000000-0000-0000-0000-000000000000"),
+        email="system@eval.internal",
+        username="system",
+        hashed_password="SYSTEM_NO_LOGIN",
+        full_name="System Daemon",
+        role_id=admin_role_id,
+        is_active=True,
+        is_verified=True
+    )
+
+    session.add_all([admin_user, admin_eval_user, teacher_user, system_user])
     await session.flush()
 
     # Create associated teacher profile
@@ -91,7 +120,7 @@ async def seed_database(session: AsyncSession) -> None:
     )
     session.add(teacher_profile)
     await session.flush()
-    print("✓ Seeding users and teacher profiles completed.")
+    print("[OK] Seeding users and teacher profiles completed.")
 
     # 3. Seed Students
     student_1 = StudentModel(
@@ -110,7 +139,7 @@ async def seed_database(session: AsyncSession) -> None:
     )
     session.add_all([student_1, student_2])
     await session.flush()
-    print("✓ Seeding students completed.")
+    print("[OK] Seeding students completed.")
 
     # 4. Seed Subjects
     subject_id = uuid.UUID("66666666-6666-6666-6666-666666666666")
@@ -125,7 +154,7 @@ async def seed_database(session: AsyncSession) -> None:
     )
     session.add(subject)
     await session.flush()
-    print("✓ Seeding subjects completed.")
+    print("[OK] Seeding subjects completed.")
 
     # 5. Seed Exam
     exam_id = uuid.UUID("77777777-7777-7777-7777-777777777777")
@@ -148,7 +177,7 @@ async def seed_database(session: AsyncSession) -> None:
     )
     session.add(exam)
     await session.flush()
-    print("✓ Seeding exams completed.")
+    print("[OK] Seeding exams completed.")
 
     # 6. Seed Question & Model Answer
     question_id = uuid.UUID("88888888-8888-8888-8888-888888888888")
@@ -174,7 +203,7 @@ async def seed_database(session: AsyncSession) -> None:
     )
     session.add(model_answer)
     await session.flush()
-    print("✓ Seeding questions and model answers completed.")
+    print("[OK] Seeding questions and model answers completed.")
 
     # 7. Seed Rubrics & Rubric Criteria
     rubric_id = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
@@ -214,7 +243,7 @@ async def seed_database(session: AsyncSession) -> None:
     )
     session.add_all([criterion_1, criterion_2])
     await session.flush()
-    print("✓ Seeding rubrics and rubric criteria completed.")
+    print("[OK] Seeding rubrics and rubric criteria completed.")
 
     print("Seeding database completed successfully!")
 

@@ -1,0 +1,93 @@
+schema_version: "1.0.0"
+
+portal:
+  id: "ai_evaluation"
+  display_name: "AI Evaluation & Diagnostics Engine"
+  route: "/portals/ai-evaluation"
+  description: "Explainable multi-dimensional scoring diagnostics: semantic embeddings, concept coverage, contradiction checks, numerical validation"
+  allowed_roles:
+    - "super_admin"
+    - "academic_admin"
+    - "teacher"
+    - "ai_evaluator"
+    - "evaluator"
+  required_permissions:
+    - "evaluations:inspect_features"
+
+layout:
+  type: "diagnostic_dashboard"
+  sidebar_width: 250
+  header_actions:
+    - id: "recalculate_eval"
+      label: "Rerun Evaluation"
+      icon: "RefreshCw"
+    - id: "batch_evaluate"
+      label: "Trigger Batch Evaluation"
+      icon: "Play"
+
+navigation:
+  - id: "breakdown"
+    label: "Evaluation Breakdown"
+    icon: "PieChart"
+    target: "breakdown"
+  - id: "criteria"
+    label: "Rubric Criterion Scoring"
+    icon: "CheckSquare"
+    target: "criteria"
+  - id: "evidence"
+    label: "Extracted Evidence Spans"
+    icon: "Bookmark"
+    target: "evidence"
+  - id: "math"
+    label: "Numerical & Symbolic Checks"
+    icon: "Hash"
+    target: "math"
+  - id: "uncertainty"
+    label: "Confidence & Anomaly Flags"
+    icon: "AlertTriangle"
+    target: "uncertainty"
+
+features:
+  semantic_similarity_vector: true
+  lexical_keyword_coverage: true
+  contradiction_detection: true
+  symbolic_math_verification: true
+  evidence_grounding_excerpts: true
+  bounded_score_guarantee: true
+
+ui_components:
+  evaluation_summary: "EvaluationBreakdownCard"
+  criterion_evidence_list: "CriterionEvidenceInspector"
+  concept_coverage_heatmap: "ConceptCoverageVisualizer"
+  math_verification_box: "SymbolicMathVerificationCard"
+  uncertainty_gauge: "EvaluationConfidenceGauge"
+
+api_requirements:
+  endpoints:
+    - method: "GET"
+      path: "/api/v1/evaluations"
+    - method: "GET"
+      path: "/api/v1/evaluations/{evaluation_id}"
+    - method: "POST"
+      path: "/api/v1/evaluations"
+
+workflow_states:
+  - "QUEUED"
+  - "EXTRACTING_FEATURES"
+  - "CALCULATING_SCORES"
+  - "EVALUATED"
+  - "FLAGGED_FOR_REVIEW"
+
+state_expectations:
+  loading: "Executing neural embeddings and symbolic verification pipeline..."
+  empty: "No evaluations available. Trigger an evaluation on ingested scripts."
+  error: "Evaluation failed due to malformed transcript or missing rubric."
+
+audit_requirements:
+  record_scoring_policy_version: true
+  record_model_version_hashes: true
+  record_confidence_breakdown: true
+
+security_requirements:
+  ensure_score_bounded_by_max_marks: true
+  prevent_unauthorized_override: true

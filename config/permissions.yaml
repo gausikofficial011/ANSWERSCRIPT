@@ -1,0 +1,97 @@
+schema_version: "1.0.0"
+
+roles:
+  - id: "super_admin"
+    name: "Super Administrator"
+    description: "Full platform governance, tenant configuration, model registry approval, security event oversight"
+    permissions:
+      - "system:manage"
+      - "users:manage"
+      - "institutions:manage"
+      - "models:approve"
+      - "audit:read_all"
+      - "queues:manage"
+      - "backups:manage"
+      - "settings:modify"
+
+  - id: "academic_admin"
+    name: "Academic Administrator"
+    description: "Curriculum oversight, departments, programs, classes, faculty assignments, publication approvals"
+    permissions:
+      - "academic:manage_structure"
+      - "faculty:assign"
+      - "students:enroll"
+      - "exams:approve"
+      - "results:approve_publication"
+      - "reports:export_institutional"
+
+  - id: "teacher"
+    name: "Teacher & Exam Creator"
+    description: "Exam authoring, question papers, model answers, rubric authoring, batch ingestion, sample calibration"
+    permissions:
+      - "exams:create"
+      - "questions:manage"
+      - "rubrics:manage"
+      - "scripts:upload"
+      - "evaluations:trigger"
+      - "calibration:run"
+
+  - id: "ocr_reviewer"
+    name: "OCR & Document Reviewer"
+    description: "Inspection of rasterised PDFs, OCR bounding boxes, manual transcript corrections, question re-segmentation"
+    permissions:
+      - "ocr:view_raw"
+      - "ocr:edit_transcript"
+      - "mappings:adjust"
+      - "scripts:reprocess"
+
+  - id: "ai_evaluator"
+    name: "AI Evaluation Specialist"
+    description: "Diagnostics of semantic/lexical scoring, keyword coverage, concept dependencies, contradiction detection"
+    permissions:
+      - "evaluations:inspect_features"
+      - "evaluations:rerun_batch"
+      - "models:test_inference"
+
+  - id: "evaluator"
+    name: "Teacher Evaluator & Moderator"
+    description: "Side-by-side script review, suggested score acceptance, teacher overrides with mandatory rationale, moderation"
+    permissions:
+      - "evaluations:review"
+      - "evaluations:override"
+      - "moderation:approve"
+      - "moderation:resolve_discrepancy"
+
+  - id: "integrity_officer"
+    name: "Academic Integrity Officer"
+    description: "Pairwise collusion analysis, similarity matrices, cross-student excerpt diffs, investigation case notes"
+    permissions:
+      - "integrity:analyze"
+      - "integrity:view_reports"
+      - "integrity:open_case"
+      - "integrity:export_forensics"
+
+  - id: "student"
+    name: "Student"
+    description: "Personal published exam results, question-by-question breakdown, rubric feedback, result card PDF download, re-evaluation request"
+    permissions:
+      - "results:view_self"
+      - "results:download_card"
+      - "appeals:submit"
+
+  - id: "qa_analyst"
+    name: "Academic Analytics & QA Analyst"
+    description: "Cohort performance distributions, question discrimination index, difficulty index, teacher override rates, OCR error rates"
+    permissions:
+      - "analytics:view_cohort"
+      - "analytics:view_psychometrics"
+      - "analytics:export_reports"
+
+  - id: "researcher"
+    name: "AI Research & Model Lab Engineer"
+    description: "Dataset catalogue management, model registry, hardware benchmark execution, small model training, champion/challenger comparison"
+    permissions:
+      - "research:view_benchmarks"
+      - "research:run_benchmarks"
+      - "research:train_models"
+      - "datasets:manage"

@@ -187,6 +187,10 @@ class UploadAnswerSheetUseCase:
         )
         await self.audit_repo.save(queue_log)
 
+        # Commit the transaction so eager/background tasks can see the new records
+        if hasattr(self.answer_sheet_repo, "session") and hasattr(self.answer_sheet_repo.session, "commit"):
+            await self.answer_sheet_repo.session.commit()
+
         # Dispatch Celery task
         from app.tasks.ocr_tasks import process_answer_sheet_ocr
         process_answer_sheet_ocr.delay(str(saved_sheet.id))

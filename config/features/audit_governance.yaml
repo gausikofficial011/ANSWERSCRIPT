@@ -1,0 +1,18 @@
+schema_version: "1.0.0"
+
+feature:
+  id: "audit_governance"
+  name: "Academic Governance, Provenance & Audit Immutability"
+  enabled: true
+
+audit_rules:
+  immutable_logs: true
+  log_all_score_overrides: true
+  require_override_rationale: true
+  log_login_and_security_events: true
+  record_scoring_provenance: true
+
+retention_policy:
+  keep_audit_logs_days: 1825   # 5 academic years
+  protect_published_records_from_deletion: true
+  allow_soft_delete_only: true

@@ -21,8 +21,9 @@ Usage in routers:
 
 from __future__ import annotations
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+import logging
 
 from app.core.constants import UserRole
 from app.domain.entities.user import User
@@ -31,9 +32,11 @@ from app.infrastructure.persistence.database import get_db_session
 # Bearer token extractor — raises 403 if Authorization header is missing
 _bearer_scheme = HTTPBearer(auto_error=True)
 
+logger = logging.getLogger("app.security.auth")
 
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
     db = Depends(get_db_session)
 ) -> User:
@@ -49,26 +52,59 @@ async def get_current_user(
     from app.domain.exceptions.auth_exceptions import TokenExpiredException, TokenInvalidException
     from app.core.exceptions import token_expired, token_invalid, unauthorized
 
+    ip_address = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+
     token = credentials.credentials
     try:
         payload = JWTService.verify_token(token, expected_type="access")
     except TokenExpiredException:
+        try:
+            logger.warning(
+                f"SECURITY: Authentication failed — Token expired. IP={ip_address}, UA={user_agent}"
+            )
+        except Exception:
+            pass
         raise token_expired()
     except TokenInvalidException:
+        try:
+            logger.warning(
+                f"SECURITY: Authentication failed — Token invalid. IP={ip_address}, UA={user_agent}"
+            )
+        except Exception:
+            pass
         raise token_invalid()
 
     user_id_str = payload.get("sub")
     try:
         user_id = uuid.UUID(user_id_str)
     except (ValueError, TypeError):
+        try:
+            logger.warning(
+                f"SECURITY: Authentication failed — Invalid sub UUID in token. Sub={user_id_str}, IP={ip_address}, UA={user_agent}"
+            )
+        except Exception:
+            pass
         raise token_invalid()
 
     user_repo = SqlUserRepository(db)
     user = await user_repo.get_by_id(user_id)
     if user is None:
+        try:
+            logger.warning(
+                f"SECURITY: Authentication failed — User not found in DB. Sub={user_id}, IP={ip_address}, UA={user_agent}"
+            )
+        except Exception:
+            pass
         raise unauthorized("User not found.")
 
     if not user.is_active:
+        try:
+            logger.warning(
+                f"SECURITY: Authentication failed — User account deactivated. User={user.email}, IP={ip_address}, UA={user_agent}"
+            )
+        except Exception:
+            pass
         raise unauthorized("User account is deactivated.")
 
     # Fallback to token payload role if not populated
@@ -92,6 +128,7 @@ async def require_auth(
 
 
 async def require_admin(
+    request: Request,
     current_user: User = Depends(get_current_user),
 ) -> User:
     """
@@ -102,11 +139,21 @@ async def require_admin(
     """
     if current_user.role != UserRole.ADMIN:
         from app.core.exceptions import insufficient_role
+        ip_address = request.client.host if request.client else "unknown"
+        user_agent = request.headers.get("user-agent", "unknown")
+        try:
+            logger.warning(
+                f"SECURITY: Authorization failed — Admin role required, user has role '{current_user.role}'. "
+                f"User={current_user.email}, IP={ip_address}, UA={user_agent}"
+            )
+        except Exception:
+            pass
         raise insufficient_role("admin")
     return current_user
 
 
 async def require_teacher(
+    request: Request,
     current_user: User = Depends(get_current_user),
 ) -> User:
     """
@@ -118,5 +165,15 @@ async def require_teacher(
     """
     if current_user.role not in (UserRole.ADMIN, UserRole.TEACHER):
         from app.core.exceptions import insufficient_role
+        ip_address = request.client.host if request.client else "unknown"
+        user_agent = request.headers.get("user-agent", "unknown")
+        try:
+            logger.warning(
+                f"SECURITY: Authorization failed — Teacher role required, user has role '{current_user.role}'. "
+                f"User={current_user.email}, IP={ip_address}, UA={user_agent}"
+            )
+        except Exception:
+            pass
         raise insufficient_role("teacher")
     return current_user
+

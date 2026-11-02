@@ -110,6 +110,15 @@ class EvaluationModel(Base):
         Float,
         nullable=True
     )
+    confidence_score: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
+    low_confidence_flag: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False
+    )
     explanation: Mapped[dict | None] = mapped_column(
         JSONB,
         nullable=True

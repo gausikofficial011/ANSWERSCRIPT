@@ -1,0 +1,81 @@
+schema_version: "1.0.0"
+
+portal:
+  id: "student"
+  display_name: "Student Academic Results Portal"
+  route: "/portals/student"
+  description: "Secure student grade access: verified published results, question-by-question breakdown, criterion feedback, certified result card PDF, re-evaluation request"
+  allowed_roles:
+    - "super_admin"
+    - "academic_admin"
+    - "student"
+  required_permissions:
+    - "results:view_self"
+
+layout:
+  type: "student_card"
+  sidebar_width: 240
+  header_actions:
+    - id: "download_all_transcripts"
+      label: "Download Grade Sheet"
+      icon: "Download"
+
+navigation:
+  - id: "my_results"
+    label: "My Published Results"
+    icon: "Award"
+    target: "my_results"
+  - id: "breakdown"
+    label: "Question Breakdown"
+    icon: "ListOrdered"
+    target: "breakdown"
+  - id: "appeals"
+    label: "Re-evaluation Requests"
+    icon: "HelpCircle"
+    target: "appeals"
+  - id: "history"
+    label: "Academic Progression"
+    icon: "TrendingUp"
+    target: "history"
+
+features:
+  student_data_isolation: true
+  question_feedback_view: true
+  rubric_attainment_view: true
+  downloadable_result_card: true
+  re_evaluation_submission: true
+
+ui_components:
+  result_card: "StudentResultCard"
+  question_feedback_accordion: "QuestionFeedbackAccordion"
+  rubric_attainment_radar: "RubricAttainmentChart"
+  appeal_request_form: "AppealRequestModal"
+
+api_requirements:
+  endpoints:
+    - method: "GET"
+      path: "/api/v1/results/me"
+    - method: "GET"
+      path: "/api/v1/results/{result_id}"
+    - method: "POST"
+      path: "/api/v1/appeals"
+
+workflow_states:
+  - "PUBLISHED"
+  - "UNDER_REVALUATION"
+  - "REVALUATION_CONCLUDED"
+
+state_expectations:
+  loading: "Loading your certified academic assessment records..."
+  empty: "No published examination results are available at this time. Results will appear once approved by faculty."
+  error: "Error loading student result records."
+
+audit_requirements:
+  log_student_result_views: true
+  log_transcript_downloads: true
+  log_appeal_filings: true
+
+security_requirements:
+  strict_student_id_isolation: true
+  never_expose_unpublished_draft_scores: true
+  never_expose_peer_scripts_or_similarity_reports: true

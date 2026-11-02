@@ -43,7 +43,7 @@ class FileMetadataService:
         except Exception:
             # Fallback regex search for PDF page objects
             # Standard PDF pages are declared via /Type /Page
-            pages = re.findall(b'/Type\s*/Page\b', file_data)
+            pages = re.findall(rb'/Type\s*/Page\b', file_data)
             if pages:
                 return len(pages)
             return 1

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Exam Results Summary Report</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm;
+      @bottom-right {
+        content: "Page " counter(page) " of " counter(pages);
+        font-family: Arial, sans-serif;
+        font-size: 8pt;
+        color: #555;
+      }
+    }
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 10pt;
+      line-height: 1.4;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 25px;
+      border-bottom: 2px solid #333;
+      padding-bottom: 10px;
+    }
+    .header h1 {
+      font-size: 18pt;
+      margin: 0 0 5px 0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .header p {
+      margin: 0;
+      font-size: 10pt;
+      color: #555;
+    }
+    .info-section {
+      margin-bottom: 20px;
+      width: 100%;
+    }
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+    }
+    .info-table td {
+      padding: 4px 0;
+      vertical-align: top;
+    }
+    .info-label {
+      font-weight: bold;
+      width: 18%;
+      color: #555;
+    }
+    .info-value {
+      width: 32%;
+    }
+    .summary-box {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 12px;
+      margin-bottom: 25px;
+      display: table;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .summary-item {
+      display: table-cell;
+      text-align: center;
+      width: 25%;
+    }
+    .summary-label {
+      font-size: 8pt;
+      text-transform: uppercase;
+      color: #6c757d;
+      margin-bottom: 3px;
+    }
+    .summary-value {
+      font-size: 14pt;
+      font-weight: bold;
+      color: #333;
+    }
+    .results-section h2 {
+      font-size: 12pt;
+      border-bottom: 1px solid #dee2e6;
+      padding-bottom: 5px;
+      margin-bottom: 10px;
+    }
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+    }
+    .results-table th, .results-table td {
+      border: 1px solid #dee2e6;
+      padding: 8px;
+      text-align: left;
+    }
+    .results-table th {
+      background-color: #f1f3f5;
+      font-weight: bold;
+      color: #495057;
+      font-size: 9pt;
+      text-transform: uppercase;
+    }
+    .results-table tr:nth-child(even) {
+      background-color: #fafbfa;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      font-size: 8pt;
+      font-weight: bold;
+      border-radius: 3px;
+    }
+    .badge-pass {
+      background-color: #d1e7dd;
+      color: #0f5132;
+      border: 1px solid #badbcc;
+    }
+    .badge-fail {
+      background-color: #f8d7da;
+      color: #842029;
+      border: 1px solid #f5c2c7;
+    }
+    .badge-published {
+      background-color: #e2f0fd;
+      color: #0d6efd;
+      border: 1px solid #bfe3fe;
+    }
+    .badge-unpublished {
+      background-color: #fff3cd;
+      color: #664d03;
+      border: 1px solid #ffecb5;
+    }
+    .footer-section {
+      margin-top: 50px;
+      width: 100%;
+    }
+    .signature-container {
+      width: 100%;
+      display: table;
+      margin-top: 40px;
+    }
+    .signature-block {
+      display: table-cell;
+      width: 50%;
+      text-align: center;
+    }
+    .signature-line {
+      width: 60%;
+      border-bottom: 1px solid #333;
+      margin: 0 auto 5px auto;
+    }
+    .signature-title {
+      font-size: 9pt;
+      color: #555;
+    }
+    .metadata {
+      font-size: 8pt;
+      color: #6c757d;
+      text-align: left;
+      margin-top: 20px;
+      border-top: 1px dashed #dee2e6;
+      padding-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>AI Answer Evaluation System</h1>
+    <p>Exam Results Summary Diagnostics Report</p>
+  </div>
+
+  <div class="info-section">
+    <table class="info-table">
+      <tr>
+        <td class="info-label">Exam Title:</td>
+        <td class="info-value" style="font-weight: bold;">{{ exam_title }}</td>
+        <td class="info-label">Date Generated:</td>
+        <td class="info-value">{{ current_date }}</td>
+      </tr>
+      <tr>
+        <td class="info-label">Subject Code/Name:</td>
+        <td class="info-value">{{ subject_name }}</td>
+        <td class="info-label">Total Marks possible:</td>
+        <td class="info-value">{{ total_marks }} marks</td>
+      </tr>
+      <tr>
+        <td class="info-label">Exam ID:</td>
+        <td class="info-value" style="font-size: 9pt; font-family: monospace;">{{ exam_id }}</td>
+        <td class="info-label">Passing Marks:</td>
+        <td class="info-value">{{ passing_marks }} marks</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="summary-box">
+    <div class="summary-item">
+      <div class="summary-label">Total Candidates</div>
+      <div class="summary-value">{{ total_candidates }}</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Class Average</div>
+      <div class="summary-value">{{ "%.1f"|format(average_percentage) }}%</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Pass Rate</div>
+      <div class="summary-value">{{ "%.1f"|format(pass_rate) }}%</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Fail Rate</div>
+      <div class="summary-value">{{ "%.1f"|format(fail_rate) }}%</div>
+    </div>
+  </div>
+
+  <div class="results-section">
+    <h2>Student Results Listings</h2>
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>Student Number</th>
+          <th>Student Name</th>
+          <th>Marks Obtained</th>
+          <th>Percentage</th>
+          <th>Grade</th>
+          <th>Pass/Fail</th>
+          <th>Publication Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td style="font-family: monospace;">{{ item.student_number }}</td>
+          <td style="font-weight: bold;">{{ item.student_name }}</td>
+          <td>{{ "%.1f"|format(item.marks_obtained) }} / {{ total_marks }}</td>
+          <td>{{ "%.1f"|format(item.percentage) }}%</td>
+          <td><strong>{{ item.grade or "-" }}</strong></td>
+          <td>
+            {% if item.pass_fail_status.upper() == 'PASS' %}
+            <span class="badge badge-pass">PASS</span>
+            {% else %}
+            <span class="badge badge-fail">FAIL</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if item.publication_status.upper() == 'PUBLISHED' %}
+            <span class="badge badge-published">Published</span>
+            {% else %}
+            <span class="badge badge-unpublished">Draft</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" style="text-align: center; color: #888; padding: 20px;">
+            No candidate results records available for this exam.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer-section">
+    <div class="signature-container">
+      <div class="signature-block">
+        <div class="signature-line" style="margin-top: 30px;"></div>
+        <div class="signature-title">Course Instructor / Examiner</div>
+      </div>
+      <div class="signature-block">
+        <div class="signature-line" style="margin-top: 30px;"></div>
+        <div class="signature-title">Department Head Seal</div>
+      </div>
+    </div>
+
+    <div class="metadata">
+      Note: This document is a class summary diagnostics sheet compiled from the system's evaluation database. 
+      System Document verification ID: {{ verification_id }}.
+    </div>
+  </div>
+
+</body>
+</html>

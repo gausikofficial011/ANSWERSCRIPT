@@ -1,0 +1,47 @@
+schema_version: "1.0.0"
+
+policy:
+  name: "Standard Higher Academic Criterion-Referenced Scoring Policy"
+  version: "2.1.0"
+  description: "Unified mathematical formulation combining semantic embedding similarity with concept coverage at the rubric criterion level, avoiding double-counting"
+
+mathematical_formulation:
+  criterion_ratio_formula: "r_c = beta_c * s_c + (1 - beta_c) * k_c"
+  criterion_mark_formula: "m_c = M_c * r_c"
+  question_score_formula: "M_suggested = min(M_max, max(0, sum(m_c)))"
+  notes:
+    - "s_c is calibrated semantic cosine similarity for criterion c in [0, 1]"
+    - "k_c is criterion-specific keyword/concept coverage ratio in [0, 1]"
+    - "beta_c is the criterion semantic weight (default: 0.65)"
+    - "M_c is the maximum mark allocated to criterion c"
+    - "M_max is the question maximum mark; sum(M_c) must equal M_max"
+
+weights:
+  default_semantic_weight_beta: 0.65
+  default_concept_coverage_weight: 0.35
+  min_criterion_semantic_weight: 0.20
+  max_criterion_semantic_weight: 0.85
+
+bounds:
+  strictly_bounded_by_max_marks: true
+  allow_negative_marks: false
+  partial_credit_step: 0.50
+
+confidence_thresholds:
+  high_confidence: 0.82
+  medium_confidence: 0.65
+  low_confidence_flag_threshold: 0.50
+  auto_route_to_human_review_below: 0.65
+
+review_triggers:
+  flag_on_ocr_confidence_below: 0.70
+  flag_on_contradiction_detected: true
+  flag_on_missing_essential_concept: true
+  flag_on_disagreement_between_semantic_and_lexical: 0.35
+  flag_on_numerical_discrepancy: true
+
+anti_gaming_safeguards:
+  detect_keyword_stuffing: true
+  repetition_suppression_factor: 0.15
+  require_syntactic_coherence: true
+  penalize_contradictory_claims: true

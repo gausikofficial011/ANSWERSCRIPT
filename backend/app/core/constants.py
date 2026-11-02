@@ -178,6 +178,9 @@ class AuditAction(str, Enum):
     PLAGIARISM_CONFIRMED = "plagiarism_confirmed"
     PLAGIARISM_DISMISSED = "plagiarism_dismissed"
     REPORT_GENERATED = "report_generated"
+    AUTHORIZATION_FAILED = "authorization_failed"
+    EXPORT_GENERATED = "export_generated"
+
 
 
 

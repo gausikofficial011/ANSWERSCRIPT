@@ -42,6 +42,8 @@ class SqlEvaluationRepository(SqlBaseRepository[Evaluation, EvaluationModel], Ev
             verified_at=model.verified_at,
             evaluation_model=model.evaluation_model,
             evaluation_confidence=model.evaluation_confidence,
+            confidence_score=model.confidence_score,
+            low_confidence_flag=model.low_confidence_flag if model.low_confidence_flag is not None else False,
             explanation=model.explanation,
             created_at=model.created_at,
             updated_at=model.updated_at
@@ -68,6 +70,8 @@ class SqlEvaluationRepository(SqlBaseRepository[Evaluation, EvaluationModel], Ev
             verified_at=entity.verified_at,
             evaluation_model=entity.evaluation_model,
             evaluation_confidence=entity.evaluation_confidence,
+            confidence_score=entity.confidence_score,
+            low_confidence_flag=entity.low_confidence_flag if entity.low_confidence_flag is not None else False,
             explanation=entity.explanation,
             created_at=entity.created_at,
             updated_at=entity.updated_at

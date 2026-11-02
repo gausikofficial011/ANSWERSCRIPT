@@ -1,0 +1,29 @@
+schema_version: "1.0.0"
+
+feature:
+  id: "document_intelligence"
+  name: "Document Ingestion & Image Preprocessing"
+  enabled: true
+
+rendering:
+  engine: "pypdfium2"
+  default_dpi: 200
+  supported_dpis: [150, 200, 300]
+  color_mode: "RGB"
+  max_pages_per_script: 60
+
+preprocessing:
+  grayscale_conversion: true
+  contrast_enhancement: true
+  deskew_angle_max_degrees: 15.0
+  adaptive_thresholding: true
+  noise_reduction: "bilateral_filter"
+  preserve_original_images: true
+
+ocr:
+  primary_engine: "easyocr"
+  fallback_engine: "tesseract"
+  languages: ["en"]
+  batch_size: 4
+  min_confidence_filter: 0.10
+  detect_bounding_boxes: true

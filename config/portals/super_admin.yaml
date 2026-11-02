@@ -1,0 +1,98 @@
+schema_version: "1.0.0"
+
+portal:
+  id: "super_admin"
+  display_name: "Super Administrator Control Plane"
+  route: "/portals/super-admin"
+  description: "Platform governance, infrastructure telemetry, tenant administration, model approvals, security audit logs"
+  allowed_roles:
+    - "super_admin"
+  required_permissions:
+    - "system:manage"
+    - "audit:read_all"
+
+layout:
+  type: "dashboard"
+  sidebar_width: 260
+  header_actions:
+    - id: "refresh_telemetry"
+      label: "Refresh Health"
+      icon: "RefreshCw"
+    - id: "export_audit"
+      label: "Export Audit Logs"
+      icon: "Download"
+
+navigation:
+  - id: "overview"
+    label: "System Health & Overview"
+    icon: "ShieldAlert"
+    target: "overview"
+  - id: "users"
+    label: "User & Role Governance"
+    icon: "Users"
+    target: "users"
+  - id: "tenants"
+    label: "Institutions & Tenants"
+    icon: "Building"
+    target: "tenants"
+  - id: "models"
+    label: "Model Registry & Approvals"
+    icon: "Cpu"
+    target: "models"
+  - id: "queues"
+    label: "Celery Queues & Tasks"
+    icon: "Activity"
+    target: "queues"
+  - id: "audit"
+    label: "Security Audit Logs"
+    icon: "FileText"
+    target: "audit"
+
+features:
+  user_management: true
+  institution_management: true
+  queue_monitoring: true
+  model_promotion: true
+  offline_status_indicator: true
+  audit_search: true
+
+ui_components:
+  overview: "SuperAdminOverview"
+  users_table: "UserGovernanceTable"
+  telemetry_panel: "SystemTelemetryPanel"
+  model_registry: "ModelApprovalTable"
+  queue_monitor: "CeleryQueueMonitor"
+  audit_viewer: "SecurityAuditLogViewer"
+
+api_requirements:
+  endpoints:
+    - method: "GET"
+      path: "/api/v1/admin/overview"
+    - method: "GET"
+      path: "/api/v1/admin/queues"
+    - method: "GET"
+      path: "/api/v1/admin/models"
+    - method: "GET"
+      path: "/api/v1/audit/logs"
+
+workflow_states:
+  - "HEALTHY"
+  - "DEGRADED"
+  - "MAINTENANCE"
+  - "OFFLINE"
+
+state_expectations:
+  loading: "Loading system telemetry and governance registry..."
+  empty: "No security alerts or pending user approvals found."
+  error: "Failed to communicate with system daemon or database."
+
+audit_requirements:
+  log_role_changes: true
+  log_tenant_creation: true
+  log_model_promotions: true
+  log_login_events: true
+
+security_requirements:
+  require_mfa_optional: true
+  enforce_session_expiry_minutes: 30
+  rate_limit_rpm: 120

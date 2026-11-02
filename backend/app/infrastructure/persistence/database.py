@@ -28,6 +28,7 @@ engine = create_async_engine(
     pool_size=10,
     max_overflow=20,
     pool_pre_ping=True,  # Automatically tests connection health
+    connect_args={"ssl": False},
 )
 
 # ── Session Factory ──────────────────────────────────────────────────────────
@@ -40,6 +41,26 @@ AsyncSessionLocal = async_sessionmaker(
     autocommit=False,
     autoflush=False,
 )
+
+
+# ── Isolated Engine Setup for Eager/Thread-safe Workflows ─────────────────────
+from sqlalchemy.pool import NullPool
+def get_isolated_session_maker():
+    isolated_engine = create_async_engine(
+        settings.database_url,
+        echo=settings.db_echo,
+        future=True,
+        poolclass=NullPool,
+        connect_args={"ssl": False},
+    )
+    isolated_sessionmaker = async_sessionmaker(
+        bind=isolated_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autocommit=False,
+        autoflush=False,
+    )
+    return isolated_sessionmaker, isolated_engine
 
 
 # ── Declarative Base ──────────────────────────────────────────────────────────

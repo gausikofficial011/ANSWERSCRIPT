@@ -99,8 +99,13 @@ class EvaluateAnswerSheetUseCase:
                     user_id=user_id
                 )
                 
-                # Check confidence score
-                if eval_record.evaluation_confidence is not None and eval_record.evaluation_confidence < 0.50:
+                # Check confidence score and flag review if low confidence
+                confidence_score_val = getattr(eval_record, "confidence_score", None)
+                if confidence_score_val is None:
+                    confidence_score_val = getattr(eval_record, "evaluation_confidence", None)
+                    
+                is_low_conf = getattr(eval_record, "low_confidence_flag", False)
+                if is_low_conf or (confidence_score_val is not None and confidence_score_val < 0.80):
                     requires_review = True
                 
                 evaluations_run += 1

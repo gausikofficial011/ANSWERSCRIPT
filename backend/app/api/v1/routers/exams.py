@@ -158,8 +158,9 @@ async def update_exam(
     db: AsyncSession = Depends(get_db_session)
 ) -> ExamResponse:
     exam_repo = SqlExamRepository(db)
+    subject_repo = SqlSubjectRepository(db)
     audit_repo = SqlAuditLogRepository(db)
-    use_case = UpdateExamUseCase(exam_repo, audit_repo)
+    use_case = UpdateExamUseCase(exam_repo, subject_repo, audit_repo)
 
     ip_address = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent")

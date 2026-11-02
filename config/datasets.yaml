@@ -1,0 +1,112 @@
+schema_version: "1.0.0"
+
+download_policy:
+  enforce_disk_safety_checks: true
+  min_required_free_disk_gb: 10.0
+  max_single_dataset_download_mb: 500
+  storage_root: "ml/datasets"
+
+datasets:
+  - id: "gopika13-answer-scripts"
+    name: "Gopika13 Answer Scripts"
+    repository: "hf://datasets/gopika13/answer_scripts"
+    task: "handwritten_ocr_and_transcript_alignment"
+    license: "CC-BY-4.0 (Research & Educational)"
+    size_mb: 48.5
+    checksum_sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    status: "sample_cached"
+    sample_path: "ml/datasets/processed/answer_scripts_sample.json"
+    is_active_benchmark: true
+
+  - id: "iam-handwriting"
+    name: "IAM Handwriting Database"
+    repository: "https://fki.tic.heia-fr.ch/databases/iam-handwriting-database"
+    task: "line_and_word_level_htr"
+    license: "Non-commercial Research License"
+    size_mb: 1150.0
+    status: "manifest_only"
+    is_active_benchmark: false
+
+  - id: "doclaynet-core"
+    name: "DocLayNet Document Layout Dataset"
+    repository: "hf://datasets/pierreguillou/DocLayNet-base"
+    task: "document_layout_segmentation"
+    license: "CDLA-Permissive-1.0"
+    size_mb: 28400.0
+    status: "manifest_only"
+    is_active_benchmark: false
+
+  - id: "funsd"
+    name: "FUNSD Form Understanding"
+    repository: "https://guillaumejaume.github.io/FUNSD/"
+    task: "noisy_scanned_document_parsing"
+    license: "MIT License"
+    size_mb: 16.2
+    status: "manifest_only"
+    is_active_benchmark: false
+
+  - id: "crohme-math"
+    name: "CROHME Competition Math Expressions"
+    repository: "https://www.isical.ac.in/~crohme/"
+    task: "handwritten_mathematical_recognition"
+    license: "Academic Use"
+    size_mb: 85.0
+    status: "manifest_only"
+    is_active_benchmark: false
+
+  - id: "publaynet"
+    name: "PubLayNet Scientific Layouts"
+    repository: "https://github.com/ibm-aur-nlp/PubLayNet"
+    task: "scientific_paper_layout_analysis"
+    license: "CDLA-Permissive-1.0"
+    size_mb: 42000.0
+    status: "manifest_only"
+    is_active_benchmark: false
+
+  - id: "rvl-cdip"
+    name: "RVL-CDIP Document Categories"
+    repository: "https://www.cs.cmu.edu/~aharley/rvl-cdip/"
+    task: "document_classification_and_routing"
+    license: "Academic Research"
+    size_mb: 37500.0
+    status: "manifest_only"
+    is_active_benchmark: false
+
+  - id: "sroie-receipts"
+    name: "SROIE Scanned Information Extraction"
+    repository: "https://rrc.cvc.uab.es/?ch=13"
+    task: "structured_ocr_field_extraction"
+    license: "Competition Research"
+    size_mb: 120.0
+    status: "manifest_only"
+    is_active_benchmark: false
+
+  - id: "docbank"
+    name: "DocBank Fine-Grained Document Layout"
+    repository: "https://github.com/doc-analysis/DocBank"
+    task: "token_level_bounding_box_annotation"
+    license: "Academic Research"
+    size_mb: 55000.0
+    status: "manifest_only"
+    is_active_benchmark: false
+
+  - id: "stsb-semantic"
+    name: "Semantic Textual Similarity Benchmark (STSb)"
+    repository: "https://ixa2.si.ehu.eus/stswiki/index.php/STSbenchmark"
+    task: "semantic_equivalence_benchmarking"
+    license: "Creative Commons Attribution-ShareAlike 4.0"
+    size_mb: 1.4
+    checksum_sha256: "9f8a329d9c2a9394982a5598bb12918e90e729a6e1a90c9b7e74888361099182"
+    status: "sample_cached"
+    sample_path: "ml/datasets/processed/stsb_sample.json"
+    is_active_benchmark: true
+
+  - id: "intelligrade-internal-v1"
+    name: "IntelliGrade Calibrated Academic Answer Scripts (Local Golden Set)"
+    repository: "internal://local_golden_benchmark"
+    task: "end_to_end_assessment_calibration"
+    license: "Proprietary Institution Ground Truth"
+    size_mb: 2.1
+    status: "installed"
+    sample_path: "ml/datasets/processed/intelligrade_golden_set.json"
+    is_active_benchmark: true

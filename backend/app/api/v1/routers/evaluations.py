@@ -5,7 +5,7 @@ api/v1/routers/evaluations.py — Evaluation REST API Endpoints
 from __future__ import annotations
 
 import uuid
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request, status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies.auth import require_auth, require_teacher
@@ -25,8 +25,10 @@ from app.infrastructure.persistence.repositories import (
     SqlModelAnswerRepository,
     SqlRubricRepository,
     SqlAnswerSheetRepository,
-    SqlAuditLogRepository
+    SqlAuditLogRepository,
+    SqlStudentRepository
 )
+from app.core.constants import UserRole
 from app.application.use_cases.evaluations.evaluate_answer_use_case import EvaluateAnswerUseCase
 from app.application.use_cases.evaluations.get_evaluation_use_case import GetEvaluationUseCase
 from app.application.use_cases.evaluations.verify_evaluation_use_case import VerifyEvaluationUseCase
@@ -55,6 +57,25 @@ async def get_evaluation(
     rev_repo = SqlEvaluationRevisionRepository(db)
     crit_repo = SqlCriterionEvaluationRepository(db)
     
+    # Enforce student ownership check
+    if current_user.role not in (UserRole.ADMIN, UserRole.TEACHER):
+        evaluation = await eval_repo.get_by_id(id)
+        if not evaluation:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evaluation not found.")
+        
+        sheet_repo = SqlAnswerSheetRepository(db)
+        answer_sheet = await sheet_repo.get_by_id(evaluation.answer_sheet_id)
+        if not answer_sheet:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Answer sheet not found.")
+        
+        student_repo = SqlStudentRepository(db)
+        student = await student_repo.get_by_email(current_user.email)
+        if not student or student.id != answer_sheet.student_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied. Students can only access their own evaluations."
+            )
+
     use_case = GetEvaluationUseCase(
         evaluation_repo=eval_repo,
         revision_repo=rev_repo,
@@ -85,6 +106,20 @@ async def get_answer_sheet_evaluations(
     current_user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db_session)
 ) -> list[EvaluationResponse]:
+    if current_user.role not in (UserRole.ADMIN, UserRole.TEACHER):
+        sheet_repo = SqlAnswerSheetRepository(db)
+        answer_sheet = await sheet_repo.get_by_id(answer_sheet_id)
+        if not answer_sheet:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Answer sheet not found.")
+        
+        student_repo = SqlStudentRepository(db)
+        student = await student_repo.get_by_email(current_user.email)
+        if not student or student.id != answer_sheet.student_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied. Students can only access evaluations for their own answer sheet."
+            )
+
     eval_repo = SqlEvaluationRepository(db)
     
     try:
@@ -220,6 +255,20 @@ async def get_evaluation_explanation(
     evaluation = await eval_repo.get_by_id(id)
     if not evaluation:
         raise not_found("Evaluation", str(id))
+
+    if current_user.role not in (UserRole.ADMIN, UserRole.TEACHER):
+        sheet_repo = SqlAnswerSheetRepository(db)
+        answer_sheet = await sheet_repo.get_by_id(evaluation.answer_sheet_id)
+        if not answer_sheet:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Answer sheet not found.")
+        
+        student_repo = SqlStudentRepository(db)
+        student = await student_repo.get_by_email(current_user.email)
+        if not student or student.id != answer_sheet.student_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied. Students can only access their own evaluation explanations."
+            )
 
     exp = evaluation.explanation or {}
     return ExplanationResponse(

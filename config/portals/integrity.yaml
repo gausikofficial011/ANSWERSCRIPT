@@ -1,0 +1,90 @@
+schema_version: "1.0.0"
+
+portal:
+  id: "integrity"
+  display_name: "Academic Integrity & Collusion Studio"
+  route: "/portals/integrity"
+  description: "Cross-script plagiarism detection: pairwise n-gram similarity, MinHash candidate retrieval, collusion matrix, suspicious excerpt diffs"
+  allowed_roles:
+    - "super_admin"
+    - "academic_admin"
+    - "integrity_officer"
+    - "evaluator"
+  required_permissions:
+    - "integrity:analyze"
+    - "integrity:view_reports"
+
+layout:
+  type: "forensic_dashboard"
+  sidebar_width: 250
+  header_actions:
+    - id: "run_cohort_analysis"
+      label: "Analyze Examination Cohort"
+      icon: "ShieldAlert"
+    - id: "export_forensics"
+      label: "Export Investigation Report"
+      icon: "FileDown"
+
+navigation:
+  - id: "collusion_matrix"
+    label: "Pairwise Collusion Matrix"
+    icon: "Grid"
+    target: "collusion_matrix"
+  - id: "cluster_view"
+    label: "Suspicious Student Clusters"
+    icon: "Share2"
+    target: "cluster_view"
+  - id: "excerpt_diff"
+    label: "Side-by-Side Excerpt Diff"
+    icon: "GitCompare"
+    target: "excerpt_diff"
+  - id: "investigations"
+    label: "Investigation Cases"
+    icon: "FolderCheck"
+    target: "investigations"
+
+features:
+  pairwise_similarity_matrix: true
+  minhash_candidate_filtering: true
+  tfidf_ngram_matching: true
+  common_text_exclusion: true
+  side_by_side_visual_diff: true
+  investigation_case_docket: true
+
+ui_components:
+  collusion_grid: "PairwiseCollusionMatrixGrid"
+  cluster_network: "SuspiciousClusterGraph"
+  excerpt_diff_viewer: "SideBySideExcerptDiff"
+  case_docket_table: "InvestigationDocketTable"
+
+api_requirements:
+  endpoints:
+    - method: "POST"
+      path: "/api/v1/integrity/exams/{exam_id}/analyze"
+    - method: "GET"
+      path: "/api/v1/integrity/exams/{exam_id}/reports"
+    - method: "GET"
+      path: "/api/v1/integrity/reports/{report_id}"
+    - method: "GET"
+      path: "/api/v1/integrity/exams/{exam_id}/matrix"
+
+workflow_states:
+  - "NOT_ANALYZED"
+  - "INDEXING_VECTORS"
+  - "COMPUTING_PAIRWISE_SIMILARITY"
+  - "FLAGGED_FOR_INVESTIGATION"
+  - "CLEARED"
+
+state_expectations:
+  loading: "Computing n-gram permutations and pairwise semantic distances..."
+  empty: "No integrity alerts detected. All similarity scores remain below the review threshold (0.75)."
+  error: "Error running integrity analysis on this examination cohort."
+
+audit_requirements:
+  log_integrity_case_openings: true
+  log_similarity_threshold_modifications: true
+  record_matched_tokens_and_indices: true
+
+security_requirements:
+  enforce_strict_student_privacy: true
+  label_as_potential_similarity_not_conviction: true

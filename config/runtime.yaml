@@ -1,0 +1,52 @@
+schema_version: "1.0.0"
+
+runtime:
+  environment: "local"
+  debug: true
+  api_prefix: "/api/v1"
+  base_url: "http://127.0.0.1:8000"
+  frontend_url: "http://127.0.0.1:5173"
+
+storage:
+  uploads_dir: "backend/storage/uploads"
+  rendered_pages_dir: "backend/storage/pages"
+  reports_dir: "backend/storage/reports"
+  models_cache_dir: "ml/models"
+  datasets_dir: "ml/datasets"
+  max_upload_size_mb: 25.0
+  allowed_mime_types:
+    - "application/pdf"
+    - "image/png"
+    - "image/jpeg"
+
+queues:
+  broker_url: "redis://127.0.0.1:6379/0"
+  result_backend: "redis://127.0.0.1:6379/1"
+  task_time_limit_sec: 300
+  task_soft_time_limit_sec: 240
+  worker_concurrency: 2
+  dedicated_queues:
+    - name: "default"
+      priority: 5
+    - name: "ocr"
+      priority: 10
+      timeout_sec: 180
+    - name: "evaluation"
+      priority: 8
+      timeout_sec: 120
+    - name: "plagiarism"
+      priority: 6
+      timeout_sec: 180
+    - name: "reports"
+      priority: 4
+      timeout_sec: 60
+    - name: "cleanup"
+      priority: 1
+      timeout_sec: 30
+
+security:
+  token_expire_minutes: 60
+  refresh_token_expire_days: 7
+  bcrypt_rounds: 12
+  enforce_tenant_isolation: true
+  allow_insecure_transport_local_only: true

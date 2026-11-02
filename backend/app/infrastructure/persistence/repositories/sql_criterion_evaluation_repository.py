@@ -33,7 +33,6 @@ class SqlCriterionEvaluationRepository(SqlBaseRepository[CriterionEvaluation, Cr
             ai_feedback=model.ai_feedback,
             teacher_score=model.teacher_score,
             teacher_feedback=model.teacher_feedback,
-            final_score=model.final_score,
             is_verified=model.is_verified,
             created_at=model.created_at,
             updated_at=model.updated_at

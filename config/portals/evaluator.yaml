@@ -1,0 +1,92 @@
+schema_version: "1.0.0"
+
+portal:
+  id: "evaluator"
+  display_name: "Teacher Evaluator & Moderator Portal"
+  route: "/portals/evaluator"
+  description: "Teacher verification workbench: accept AI score proposals, execute overrides with mandatory rationale, blind marking, moderation"
+  allowed_roles:
+    - "super_admin"
+    - "academic_admin"
+    - "teacher"
+    - "evaluator"
+  required_permissions:
+    - "evaluations:review"
+    - "evaluations:override"
+
+layout:
+  type: "review_workbench"
+  sidebar_width: 250
+  header_actions:
+    - id: "accept_all_high_conf"
+      label: "Approve High Confidence"
+      icon: "CheckCircle"
+    - id: "submit_moderation"
+      label: "Submit for Moderation"
+      icon: "Send"
+
+navigation:
+  - id: "queue"
+    label: "Pending Review Queue"
+    icon: "Clock"
+    target: "queue"
+  - id: "active_review"
+    label: "Evaluation Workbench"
+    icon: "Edit"
+    target: "active_review"
+  - id: "moderation"
+    label: "Moderator Resolution"
+    icon: "GitPullRequest"
+    target: "moderation"
+  - id: "revision_history"
+    label: "Audit Revision History"
+    icon: "History"
+    target: "revision_history"
+
+features:
+  side_by_side_review: true
+  score_override_with_mandatory_rationale: true
+  double_blind_marking: true
+  moderation_discrepancy_resolution: true
+  one_click_proposal_acceptance: true
+  immutable_revision_chain: true
+
+ui_components:
+  review_queue_table: "EvaluatorReviewQueueTable"
+  workbench_split: "EvaluatorWorkbenchSplit"
+  override_dialog: "ScoreOverrideReasonModal"
+  moderator_resolution_card: "ModeratorResolutionCard"
+  revision_timeline: "EvaluationRevisionTimeline"
+
+api_requirements:
+  endpoints:
+    - method: "GET"
+      path: "/api/v1/evaluations"
+    - method: "POST"
+      path: "/api/v1/evaluations/{evaluation_id}/override"
+    - method: "POST"
+      path: "/api/v1/evaluations/{evaluation_id}/approve"
+    - method: "GET"
+      path: "/api/v1/evaluations/{evaluation_id}/revisions"
+
+workflow_states:
+  - "PENDING_TEACHER_REVIEW"
+  - "TEACHER_REVIEWED"
+  - "MODERATION_REQUIRED"
+  - "APPROVED"
+  - "REJECTED"
+
+state_expectations:
+  loading: "Loading candidate answer scripts and evaluation proposals..."
+  empty: "All scripts in this cohort have been reviewed and approved!"
+  error: "Error saving teacher evaluation review."
+
+audit_requirements:
+  mandatory_override_reason: true
+  record_teacher_principal_id: true
+  record_previous_and_new_marks: true
+  immutable_revision_records: true
+
+security_requirements:
+  enforce_evaluator_assignment: true
+  prevent_unauthorized_score_alteration: true

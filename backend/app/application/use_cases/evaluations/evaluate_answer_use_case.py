@@ -116,6 +116,8 @@ class EvaluateAnswerUseCase:
         keyword_match_score = 0.0
         ai_feedback = ""
         evaluation_confidence = 1.0
+        confidence_score = 1.0
+        low_confidence_flag = False
         explanation_data = {}
         criterion_details = []
 
@@ -125,6 +127,8 @@ class EvaluateAnswerUseCase:
             keyword_match_score = 0.0
             ai_feedback = "Not attempted."
             evaluation_confidence = 1.0
+            confidence_score = 1.0
+            low_confidence_flag = False
             explanation_data = {
                 "strengths": "N/A",
                 "weaknesses": "Question not attempted by the student.",
@@ -139,6 +143,8 @@ class EvaluateAnswerUseCase:
             keyword_match_score = 0.0
             ai_feedback = "AI evaluation skipped: Manual grading mode."
             evaluation_confidence = 1.0
+            confidence_score = 1.0
+            low_confidence_flag = False
             explanation_data = {
                 "strengths": "N/A",
                 "weaknesses": "Awaiting manual teacher evaluation.",
@@ -186,9 +192,25 @@ class EvaluateAnswerUseCase:
             ai_score = agg_results["final_score"]
             
             # E. Confidence metrics calculation
-            # Formulated from mapping confidence and semantic/keyword agreement
-            agreement = 1.0 - abs(similarity_score - keyword_match_score)
-            evaluation_confidence = round(0.6 * mapping.mapping_confidence + 0.4 * agreement, 2)
+            # Formulated from mapping confidence, semantic/keyword agreement, and rubric variance
+            import math
+            divergence = abs(similarity_score - keyword_match_score)
+            std_dev = 0.0
+            if rubric and rubric.criteria and criterion_details:
+                scores = [cd["awarded_marks"] / cd["max_marks"] for cd in criterion_details if cd["max_marks"] > 0]
+                if len(scores) > 1:
+                    mean = sum(scores) / len(scores)
+                    variance = sum((s - mean) ** 2 for s in scores) / (len(scores) - 1)
+                    std_dev = math.sqrt(variance)
+            
+            confidence_val = (
+                0.5 * mapping.mapping_confidence +
+                0.3 * (1.0 - divergence) -
+                0.2 * std_dev
+            )
+            confidence_score = max(0.0, min(1.0, round(confidence_val, 4)))
+            evaluation_confidence = confidence_score
+            low_confidence_flag = confidence_score < 0.80
 
             # F. Explainable AI Feedback
             explanation_data = self.explanation_service.generate_explanation(
@@ -229,6 +251,8 @@ class EvaluateAnswerUseCase:
             existing_eval.keyword_match_score = keyword_match_score
             existing_eval.ai_feedback = ai_feedback
             existing_eval.evaluation_confidence = evaluation_confidence
+            existing_eval.confidence_score = confidence_score
+            existing_eval.low_confidence_flag = low_confidence_flag
             existing_eval.explanation = explanation_data
             existing_eval.updated_at = now
             
@@ -248,6 +272,8 @@ class EvaluateAnswerUseCase:
                 keyword_match_score=keyword_match_score,
                 ai_feedback=ai_feedback,
                 evaluation_confidence=evaluation_confidence,
+                confidence_score=confidence_score,
+                low_confidence_flag=low_confidence_flag,
                 explanation=explanation_data,
                 created_at=now,
                 updated_at=now

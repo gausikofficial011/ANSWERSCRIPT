@@ -1,0 +1,44 @@
+schema_version: "1.0.0"
+platform:
+  name: "IntelliGrade"
+  tagline: "Academic Intelligence, Verified by Evidence"
+  organization: "Advanced Multi-Tier Academic Examination System (AMAES)"
+  edition: "Enterprise Local-First"
+  version: "1.0.0-rc"
+  build: "20261026-prod"
+  environment: "local"
+
+branding:
+  primary_color: "#14243A"      # Midnight Navy
+  secondary_color: "#0B1424"    # Deep Navy
+  accent_color: "#4F46E5"       # Academic Indigo
+  accent_hover: "#4338CA"       # Indigo Hover
+  background_canvas: "#F7F5F0"  # Warm Ivory Canvas
+  surface_card: "#FFFFFF"       # Pure White Surface
+  text_primary: "#1B2430"
+  text_secondary: "#64748B"
+  border_color: "#E2E8F0"
+  success_color: "#15803D"
+  warning_color: "#B45309"
+  danger_color: "#B91C1C"
+  info_color: "#2563EB"
+
+typography:
+  font_family_sans: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+  font_family_mono: "'JetBrains Mono', 'Fira Code', Consolas, monospace"
+  page_title_size: "28px"
+  section_title_size: "20px"
+  body_text_size: "15px"
+  dense_table_size: "13.5px"
+  caption_size: "12px"
+
+features:
+  multi_portal_architecture: true
+  local_first_inference: true
+  plagiarism_detection: true
+  double_blind_marking: true
+  symbolic_math_validation: true
+  audit_provenance_logging: true
+  export_pdf_reports: true
+  offline_mode_ready: true
+  cloud_telemetry_enabled: false

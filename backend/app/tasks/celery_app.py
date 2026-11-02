@@ -17,11 +17,13 @@ Routing:
 
 from __future__ import annotations
 
+import os
 from celery import Celery
 
 from app.config import get_settings
 
 settings = get_settings()
+
 
 
 def create_celery_app() -> Celery:
@@ -38,13 +40,12 @@ def create_celery_app() -> Celery:
         include=[
             "app.tasks.ocr_tasks",
             "app.tasks.evaluation_tasks",
-            "app.tasks.plagiarism_tasks",
-            "app.tasks.report_tasks",
             "app.tasks.cleanup_tasks",
         ],
     )
 
     app.conf.update(
+        task_always_eager=os.getenv("CELERY_TASK_ALWAYS_EAGER", "False").lower() in ("true", "1"),
         # ── Serialization ────────────────────────────────────────────────
         task_serializer="json",
         result_serializer="json",
@@ -52,6 +53,7 @@ def create_celery_app() -> Celery:
         # ── Timezone ────────────────────────────────────────────────────
         timezone="UTC",
         enable_utc=True,
+
         # ── Task Behavior ────────────────────────────────────────────────
         task_acks_late=True,             # Acknowledge only after task completes
         task_reject_on_worker_lost=True, # Re-queue if worker dies mid-task
@@ -72,9 +74,8 @@ def create_celery_app() -> Celery:
         task_default_queue="default",
         task_routes={
             "app.tasks.ocr_tasks.*":         {"queue": "ocr"},
+            "app.tasks.evaluation_tasks.detect_plagiarism_task": {"queue": "plagiarism"},
             "app.tasks.evaluation_tasks.*":  {"queue": "evaluation"},
-            "app.tasks.plagiarism_tasks.*":  {"queue": "plagiarism"},
-            "app.tasks.report_tasks.*":      {"queue": "reports"},
             "app.tasks.cleanup_tasks.*":     {"queue": "cleanup"},
         },
         # ── Beat Schedule (Periodic Tasks) ────────────────────────────────

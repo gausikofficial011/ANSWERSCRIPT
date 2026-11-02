@@ -253,6 +253,192 @@ def test_create_exam_invalid_marks():
     assert response.status_code == 422  # validation error in Pydantic schema
 
 
+def test_get_exam_success():
+    exam_id = uuid.uuid4()
+    subject_id = uuid.uuid4()
+    
+    from app.infrastructure.persistence.models.exam_model import ExamModel
+    
+    exam_orm = ExamModel(
+        id=exam_id,
+        subject_id=subject_id,
+        title="Midterm",
+        description="Physics Midterm",
+        exam_date=date.today(),
+        total_marks=100,
+        passing_marks=40,
+        duration_minutes=120,
+        status=ExamStatus.DRAFT,
+        scoring_config={},
+        created_by=mock_user.id,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc)
+    )
+
+    async def mock_get(model_class, entity_id, *args, **kwargs):
+        if model_class == ExamModel and entity_id == exam_id:
+            return exam_orm
+        return None
+    mock_db.get = AsyncMock(side_effect=mock_get)
+
+    response = client.get(f"/exams/{exam_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == str(exam_id)
+    assert data["title"] == "Midterm"
+
+
+def test_get_exam_not_found():
+    mock_db.get = AsyncMock(return_value=None)
+    response = client.get(f"/exams/{uuid.uuid4()}")
+    assert response.status_code == 404
+
+
+def test_update_exam_success():
+    exam_id = uuid.uuid4()
+    subject_id = uuid.uuid4()
+    
+    from app.infrastructure.persistence.models.exam_model import ExamModel
+    
+    exam_orm = ExamModel(
+        id=exam_id,
+        subject_id=subject_id,
+        title="Original Title",
+        description="Original Description",
+        exam_date=date.today(),
+        total_marks=100,
+        passing_marks=40,
+        duration_minutes=120,
+        status=ExamStatus.DRAFT,
+        scoring_config={},
+        created_by=mock_user.id,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc)
+    )
+
+    async def mock_get(model_class, entity_id, *args, **kwargs):
+        if model_class == ExamModel and entity_id == exam_id:
+            return exam_orm
+        return None
+    mock_db.get = AsyncMock(side_effect=mock_get)
+
+    response = client.put(
+        f"/exams/{exam_id}",
+        json={
+            "title": "Updated Title",
+            "total_marks": 80,
+            "passing_marks": 35
+        }
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["title"] == "Updated Title"
+    assert data["total_marks"] == 80
+    assert data["passing_marks"] == 35
+
+
+def test_update_exam_not_found():
+    mock_db.get = AsyncMock(return_value=None)
+    response = client.put(
+        f"/exams/{uuid.uuid4()}",
+        json={
+            "title": "Updated Title",
+            "total_marks": 80,
+            "passing_marks": 35
+        }
+    )
+    assert response.status_code == 404
+
+
+def test_update_exam_invalid_marks():
+    response = client.put(
+        f"/exams/{uuid.uuid4()}",
+        json={
+            "title": "Updated Title",
+            "total_marks": 50,
+            "passing_marks": 60  # invalid
+        }
+    )
+    assert response.status_code == 422  # validation error in Pydantic schema
+
+
+def test_delete_exam_success():
+    exam_id = uuid.uuid4()
+    
+    from app.infrastructure.persistence.models.exam_model import ExamModel
+    
+    exam_orm = ExamModel(
+        id=exam_id,
+        subject_id=uuid.uuid4(),
+        title="Delete Me",
+        exam_date=date.today(),
+        total_marks=100,
+        passing_marks=40,
+        duration_minutes=120,
+        status=ExamStatus.DRAFT,
+        scoring_config={},
+        created_by=mock_user.id,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc)
+    )
+
+    async def mock_get(model_class, entity_id, *args, **kwargs):
+        if model_class == ExamModel and entity_id == exam_id:
+            return exam_orm
+        return None
+    mock_db.get = AsyncMock(side_effect=mock_get)
+
+    response = client.delete(f"/exams/{exam_id}")
+    assert response.status_code == 200
+    assert response.json()["detail"] == "Exam deleted successfully."
+
+
+def test_delete_exam_not_found():
+    mock_db.get = AsyncMock(return_value=None)
+    response = client.delete(f"/exams/{uuid.uuid4()}")
+    assert response.status_code == 404
+
+
+def test_list_exams_success():
+    exam_id = uuid.uuid4()
+    subject_id = uuid.uuid4()
+    
+    from app.infrastructure.persistence.models.exam_model import ExamModel
+    
+    exam_orm = ExamModel(
+        id=exam_id,
+        subject_id=subject_id,
+        title="Final Exam",
+        description="Math final",
+        exam_date=date.today(),
+        total_marks=100,
+        passing_marks=40,
+        duration_minutes=120,
+        status=ExamStatus.DRAFT,
+        scoring_config={},
+        created_by=mock_user.id,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc)
+    )
+
+    # Mock execute for count and select queries
+    count_result = MagicMock()
+    count_result.scalar_one.return_value = 1
+    
+    data_result = MagicMock()
+    data_result.scalars.return_value.all.return_value = [exam_orm]
+
+    mock_db.execute = AsyncMock(side_effect=[count_result, data_result])
+
+    response = client.get("/exams", params={"page": 1, "page_size": 10, "search": "Final", "subject_id": str(subject_id), "status": "draft"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    assert len(data["items"]) == 1
+    assert data["items"][0]["title"] == "Final Exam"
+
+
 def test_create_question_success():
     question_id = uuid.uuid4()
     exam_id = uuid.uuid4()

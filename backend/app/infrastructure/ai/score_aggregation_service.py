@@ -26,18 +26,24 @@ class ScoreAggregationService:
         Combines evaluation scores using weights defined in exam_scoring_config.
         
         Default weights:
-          - Semantic: 40% (0.40)
-          - Keywords: 20% (0.20)
-          - Rubric:   40% (0.40)
-          
-        If no rubric is used, Rubric weight is redistributed proportionally to Semantic & Keyword weights.
+          - Rubric questions: Semantic: 20%, Keywords: 30%, Rubric: 50%
+          - Non-rubric questions: Semantic: 40%, Keywords: 60%
         """
         # Load weights from config or use defaults
         config = exam_scoring_config or {}
         
-        sem_w = config.get("semantic_weight", 0.40)
-        kw_w = config.get("keyword_weight", 0.20)
-        rub_w = config.get("rubric_weight", 0.40)
+        if rubric_score is not None:
+            default_sem_w = 0.20
+            default_kw_w = 0.30
+            default_rub_w = 0.50
+        else:
+            default_sem_w = 0.40
+            default_kw_w = 0.60
+            default_rub_w = 0.00
+
+        sem_w = config.get("semantic_weight", default_sem_w)
+        kw_w = config.get("keyword_weight", default_kw_w)
+        rub_w = config.get("rubric_weight", default_rub_w)
         
         # Normalize weights to ensure they sum to 1.0
         total_w = sem_w + kw_w + rub_w
@@ -46,12 +52,20 @@ class ScoreAggregationService:
             kw_w /= total_w
             rub_w /= total_w
         else:
-            # Fallback if weights are configured invalidly
-            sem_w = 0.40
-            kw_w = 0.20
-            rub_w = 0.40
+            sem_w = default_sem_w
+            kw_w = default_kw_w
+            rub_w = default_rub_w
 
-        semantic_component = similarity_score * max_marks
+        # Configurable Keyword Threshold Gating (Soft Gating)
+        gating_threshold = config.get("keyword_gating_threshold", 0.20)
+        if gating_threshold > 0.0:
+            raw_mult = keyword_match_score / gating_threshold
+            multiplier = max(0.25, min(1.0, raw_mult))
+        else:
+            multiplier = 1.0
+
+        raw_semantic_component = similarity_score * max_marks
+        semantic_component = raw_semantic_component * multiplier
         keyword_component = keyword_match_score * max_marks
         
         if rubric_score is None:
@@ -61,8 +75,8 @@ class ScoreAggregationService:
                 adj_sem_w = sem_w / denom
                 adj_kw_w = kw_w / denom
             else:
-                adj_sem_w = 0.67
-                adj_kw_w = 0.33
+                adj_sem_w = 0.40
+                adj_kw_w = 0.60
                 
             final_score = (adj_sem_w * semantic_component) + (adj_kw_w * keyword_component)
             rubric_score_effective = 0.0

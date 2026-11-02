@@ -1,0 +1,95 @@
+schema_version: "1.0.0"
+
+portal:
+  id: "teacher"
+  display_name: "Teacher & Exam Creator Portal"
+  route: "/portals/teacher"
+  description: "Exam authoring, question papers, official model answers, criterion rubrics, batch answer sheet upload, calibration"
+  allowed_roles:
+    - "super_admin"
+    - "academic_admin"
+    - "teacher"
+  required_permissions:
+    - "exams:create"
+    - "questions:manage"
+    - "rubrics:manage"
+
+layout:
+  type: "workspace"
+  sidebar_width: 260
+  header_actions:
+    - id: "create_exam"
+      label: "New Examination"
+      icon: "FilePlus"
+    - id: "upload_scripts"
+      label: "Batch Ingestion"
+      icon: "UploadCloud"
+
+navigation:
+  - id: "exams"
+    label: "My Examinations"
+    icon: "BookOpen"
+    target: "exams"
+  - id: "question_builder"
+    label: "Question Paper Builder"
+    icon: "Edit3"
+    target: "question_builder"
+  - id: "rubrics"
+    label: "Rubric & Policy Config"
+    icon: "Sliders"
+    target: "rubrics"
+  - id: "batch_upload"
+    label: "Batch Ingestion Queue"
+    icon: "UploadCloud"
+    target: "batch_upload"
+  - id: "calibration"
+    label: "Sample Calibration"
+    icon: "Target"
+    target: "calibration"
+
+features:
+  question_versioning: true
+  subquestion_allocations: true
+  rubric_weight_validation: true
+  sample_calibration_testing: true
+  batch_pdf_ingestion: true
+
+ui_components:
+  exam_list: "TeacherExamCards"
+  question_editor: "QuestionPaperBuilder"
+  rubric_matrix_editor: "RubricCriterionEditor"
+  batch_uploader: "BatchAnswerSheetUploader"
+  calibration_tester: "ModelAnswerCalibrationWidget"
+
+api_requirements:
+  endpoints:
+    - method: "GET"
+      path: "/api/v1/exams"
+    - method: "POST"
+      path: "/api/v1/exams"
+    - method: "POST"
+      path: "/api/v1/questions"
+    - method: "POST"
+      path: "/api/v1/rubrics"
+    - method: "POST"
+      path: "/api/v1/answer-sheets/upload"
+
+workflow_states:
+  - "DRAFT"
+  - "CONFIGURED"
+  - "INGESTED"
+  - "PROCESSING"
+  - "EVALUATED"
+
+state_expectations:
+  loading: "Loading examination papers, model answers, and rubrics..."
+  empty: "You haven't authored any examination papers yet. Click 'New Examination' to start."
+  error: "Error synchronizing examination data."
+
+audit_requirements:
+  log_rubric_edits: true
+  log_model_answer_modifications: true
+  log_batch_ingestions: true
+
+security_requirements:
+  enforce_faculty_assignment_check: true

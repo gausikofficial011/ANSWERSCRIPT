@@ -1,0 +1,20 @@
+schema_version: "1.0.0"
+
+feature:
+  id: "grading_engine"
+  name: "Multi-Criterion Neural & Lexical Assessment Engine"
+  enabled: true
+
+scoring_pipeline:
+  criterion_formula: "r_c = beta_c * s_c + (1 - beta_c) * k_c"
+  mark_formula: "m_c = M_c * r_c"
+  question_score_formula: "min(M_max, max(0, sum(m_c)))"
+  semantic_weight_default: 0.65
+  keyword_weight_default: 0.35
+
+safeguards:
+  enforce_strict_max_bounds: true
+  allow_partial_credit: true
+  credit_step: 0.50
+  penalize_repetition_gaming: true
+  flag_contradiction_severity_threshold: 0.70

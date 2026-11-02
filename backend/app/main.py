@@ -10,6 +10,7 @@ import sys
 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import get_settings
@@ -41,11 +42,27 @@ async def lifespan(app: FastAPI):
     
     # 1. Verify critical configurations
     logger.info("Verifying configuration settings...")
-    if not settings.jwt_secret_key or settings.jwt_secret_key == "dev_secret_key_change_me_in_production":
-        logger.warning(
-            "JWT_SECRET_KEY is using the default development key. "
-            "Please ensure a secure key is set in production environment!"
-        )
+    is_default = (not settings.jwt_secret_key) or (settings.jwt_secret_key == "dev_secret_key_change_me_in_production")
+    is_short = settings.jwt_secret_key and len(settings.jwt_secret_key) < 32
+    
+    if settings.environment == "production":
+        if is_default:
+            logger.critical("Insecure JWT_SECRET_KEY default rejected in production!")
+            raise RuntimeError("JWT_SECRET_KEY cannot be default in production mode.")
+        if is_short:
+            logger.critical("JWT_SECRET_KEY length must be at least 32 characters in production!")
+            raise RuntimeError("JWT_SECRET_KEY length must be at least 32 characters in production.")
+    else:
+        if is_default:
+            logger.warning(
+                "JWT_SECRET_KEY is using the default development key. "
+                "Please ensure a secure key is set in production environment!"
+            )
+        elif is_short:
+            logger.warning(
+                "JWT_SECRET_KEY length is less than 32 characters. "
+                "Ensure a longer secure key is configured for production!"
+            )
     
     # 2. Database Initialization / Connectivity Check
     logger.info("Initializing database and verifying connection...")
@@ -93,6 +110,12 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+# ── Trusted Host Middleware ──────────────────────────────────────────────────
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=settings.allowed_hosts,
 )
 
 

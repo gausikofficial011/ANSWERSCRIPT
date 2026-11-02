@@ -5,7 +5,7 @@ api/v1/routers/answer_sheets.py — Answer Sheet Routing Endpoints
 from __future__ import annotations
 
 import uuid
-from fastapi import APIRouter, Depends, Request, status, Query, File, UploadFile, Form
+from fastapi import APIRouter, Depends, Request, status, Query, File, UploadFile, Form, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies.auth import require_auth, require_teacher
@@ -15,7 +15,7 @@ from app.api.v1.schemas.answer_sheet_schemas import (
 )
 from app.api.v1.schemas.pagination_schemas import PaginatedSchemaResponse
 from app.api.v1.schemas.evaluation_schemas import EvaluationResponse
-from app.core.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from app.core.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, UserRole
 from app.core.pagination import PaginationParams
 from app.infrastructure.persistence.database import get_db_session
 
@@ -31,6 +31,8 @@ from app.infrastructure.storage.file_validator_service import FileValidatorServi
 from app.infrastructure.storage.file_metadata_service import FileMetadataService
 from app.infrastructure.storage.stub_malware_scanner import StubMalwareScanner
 from app.infrastructure.storage.default_student_mapping_service import DefaultStudentMappingService
+from app.infrastructure.security.rate_limiter import upload_rate_limit_dependency
+from app.config import get_settings
 
 # Use Cases
 from app.application.use_cases.answer_sheets import (
@@ -88,7 +90,8 @@ async def upload_answer_sheets(
     student_id: uuid.UUID | None = Form(None, description="Optional manual student mapping ID"),
     files: list[UploadFile] = File(..., description="Multipart files (PDF, PNG, JPG, JPEG)"),
     current_user: User = Depends(require_teacher),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db_session),
+    _rate_limit: None = Depends(upload_rate_limit_dependency)
 ) -> list[AnswerSheetResponse]:
     answer_sheet_repo = SqlAnswerSheetRepository(db)
     exam_repo = SqlExamRepository(db)
@@ -99,7 +102,14 @@ async def upload_answer_sheets(
     storage_service = LocalFileStorageService()
     validator_service = FileValidatorService()
     metadata_service = FileMetadataService()
-    scanner = StubMalwareScanner()
+    
+    settings = get_settings()
+    if settings.clamav_enabled:
+        from app.infrastructure.storage.clamav_malware_scanner import ClamAVMalwareScanner
+        scanner = ClamAVMalwareScanner()
+    else:
+        scanner = StubMalwareScanner()
+        
     mapping_service = DefaultStudentMappingService(student_repo)
 
     use_case = UploadAnswerSheetUseCase(
@@ -141,9 +151,9 @@ async def upload_answer_sheets(
             # Enforce 50MB error response
             raise file_too_large(50)
         except UnsupportedFileTypeException as e:
-            raise unsupported_file_type(e.context.get("allowed_types", []))
+            raise bad_request(f"Unsupported file format. {e.message}")
         except (EmptyFileException, CorruptedFileException) as e:
-            raise bad_request(str(e))
+            raise bad_request(f"Unsupported file format. {e}")
         except BusinessRuleViolationException as e:
             raise bad_request(e.rule)
             
@@ -166,6 +176,16 @@ async def list_answer_sheets(
     current_user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db_session)
 ) -> AnswerSheetListResponse:
+    if current_user.role not in (UserRole.ADMIN, UserRole.TEACHER):
+        student_repo = SqlStudentRepository(db)
+        student = await student_repo.get_by_email(current_user.email)
+        if not student:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied. Student record not found."
+            )
+        student_id = student.id
+
     answer_sheet_repo = SqlAnswerSheetRepository(db)
     use_case = ListAnswerSheetsUseCase(answer_sheet_repo)
 
@@ -196,6 +216,14 @@ async def get_answer_sheet(
 
     try:
         sheet = await use_case.execute(id)
+        if current_user.role not in (UserRole.ADMIN, UserRole.TEACHER):
+            student_repo = SqlStudentRepository(db)
+            student = await student_repo.get_by_email(current_user.email)
+            if not student or student.id != sheet.student_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied. Students can only access their own answer sheets."
+                )
         return sheet
     except EntityNotFoundException as e:
         raise not_found(e.entity_type, str(e.entity_id))
@@ -249,6 +277,20 @@ async def get_answer_sheet_evaluations(
     from app.infrastructure.persistence.repositories.sql_evaluation_repository import SqlEvaluationRepository
     from app.api.v1.schemas.evaluation_schemas import EvaluationResponse
     
+    sheet_repo = SqlAnswerSheetRepository(db)
+    sheet = await sheet_repo.get_by_id(id)
+    if not sheet:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Answer sheet not found.")
+        
+    if current_user.role not in (UserRole.ADMIN, UserRole.TEACHER):
+        student_repo = SqlStudentRepository(db)
+        student = await student_repo.get_by_email(current_user.email)
+        if not student or student.id != sheet.student_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied. Students can only access evaluations for their own answer sheets."
+            )
+            
     eval_repo = SqlEvaluationRepository(db)
     try:
         evals = await eval_repo.get_by_answer_sheet_id(id)

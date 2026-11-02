@@ -30,15 +30,28 @@ class Settings(BaseSettings):
     )
     db_echo: bool = Field(default=False, alias="DB_ECHO")
 
-    # ── Security Config ──────────────────────────────────────────────────────────
+    # ── Security & Operational Config ───────────────────────────────────────────
+    environment: str = Field(default="development", alias="ENVIRONMENT")
+    allowed_hosts: list[str] = Field(default=["*"], alias="ALLOWED_HOSTS")
     jwt_secret_key: str = Field(default="dev_secret_key_change_me_in_production", alias="JWT_SECRET_KEY")
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(default=30, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
     refresh_token_expire_days: int = Field(default=7, alias="REFRESH_TOKEN_EXPIRE_DAYS")
 
+    # Upload Rate Limiting Config (In-memory)
+    rate_limit_upload_limit: int = Field(default=10, alias="RATE_LIMIT_UPLOAD_LIMIT")
+    rate_limit_upload_window: int = Field(default=60, alias="RATE_LIMIT_UPLOAD_WINDOW")
+
     # ── File Storage Config ──────────────────────────────────────────────────────
     upload_dir: str = Field(default="uploads", alias="UPLOAD_DIR")
-    max_upload_size_bytes: int = Field(default=104857600, alias="MAX_UPLOAD_SIZE_BYTES")  # 100MB
+    max_upload_size_bytes: int = Field(default=52428800, alias="MAX_UPLOAD_SIZE_BYTES")  # 50MB default
+
+    # ClamAV Configuration
+    clamav_enabled: bool = Field(default=False, alias="CLAMAV_ENABLED")
+    clamav_host: str = Field(default="localhost", alias="CLAMAV_HOST")
+    clamav_port: int = Field(default=3310, alias="CLAMAV_PORT")
+    clamav_fail_closed: bool = Field(default=True, alias="CLAMAV_FAIL_CLOSED")
+
 
     # ── OCR & AI Models Config ───────────────────────────────────────────────────
     ocr_confidence_threshold: float = Field(default=0.6, alias="OCR_CONFIDENCE_THRESHOLD")
