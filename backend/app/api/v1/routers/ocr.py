@@ -5,13 +5,14 @@ api/v1/routers/ocr.py — OCR Pipeline REST API Endpoints
 from __future__ import annotations
 
 import uuid
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request, UploadFile, File, Form, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies.auth import require_teacher
-from app.api.v1.schemas.ocr_schemas import OCRResultResponse
+from app.api.v1.schemas.ocr_schemas import OCRResultResponse, DocumentExtractionResponse
 from app.api.v1.schemas.answer_sheet_schemas import AnswerSheetResponse
 from app.infrastructure.persistence.database import get_db_session
+from app.application.services.document_extraction_service import DocumentExtractionService
 
 # Repositories
 from app.infrastructure.persistence.repositories import (
@@ -83,3 +84,34 @@ async def reprocess_ocr(
         raise not_found(e.entity_type, str(e.entity_id))
     except Exception as e:
         raise bad_request(str(e))
+
+
+@router.post(
+    "/extract-document",
+    response_model=DocumentExtractionResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Extract Text and Questions from PDF / Scanned Image (OCR)",
+    description="Teacher/Admin only. Parses PDF digital text or executes EasyOCR vision pipeline on scanned pages/images, extracting questions, keywords, and model answers."
+)
+async def extract_document(
+    file: UploadFile = File(..., description="Target PDF or Image (PNG, JPG, JPEG)"),
+    extract_mode: str = Form("auto", description="Extraction mode: auto, ocr_only, or digital_only"),
+    current_user: User = Depends(require_teacher),
+) -> DocumentExtractionResponse:
+    if not file.filename:
+        raise bad_request("File name must not be empty.")
+
+    file_bytes = await file.read()
+    if not file_bytes:
+        raise bad_request("Uploaded file is empty.")
+
+    service = DocumentExtractionService()
+    try:
+        return await service.extract_from_file_bytes(
+            file_bytes=file_bytes,
+            filename=file.filename,
+            content_type=file.content_type or "application/octet-stream",
+            extract_mode=extract_mode
+        )
+    except Exception as e:
+        raise bad_request(f"Document extraction failed: {str(e)}")
