@@ -1,9 +1,10 @@
-"""
+﻿"""
 backend/app/application/services/document_extraction_service.py
 
 High-performance OCR and PDF text extraction service for question papers,
 model answers, and academic documents. Supports digital PDF parsing,
-fallback EasyOCR vision recognition for scanned pages, and image extraction.
+fallback EasyOCR vision recognition for scanned pages, OpenCV image
+preprocessing, 2D layout reconstruction, and lexical artifact repair.
 """
 
 from __future__ import annotations
@@ -17,12 +18,16 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+import cv2
+import numpy as np
+
 from app.api.v1.schemas.ocr_schemas import (
     BoundingBoxSchema,
     DocumentExtractionResponse,
     DocumentPageExtractionSchema,
     ExtractedQuestionSchema,
 )
+from app.infrastructure.ai.text_normalization_service import TextNormalizationService
 
 STOPWORDS = {
     "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't",
@@ -46,12 +51,14 @@ STOPWORDS = {
 
 class DocumentExtractionService:
     """
-    Service responsible for extracting text, bounding boxes, questions,
-    and keywords from digital PDFs, scanned documents, and images.
+    Advanced Document Extraction Service.
+    Coordinates digital PDF text extraction, OpenCV enhancement (deskew, contrast CLAHE, denoise),
+    EasyOCR 2D spatial layout reconstruction, and lexical post-processing.
     """
 
     def __init__(self):
         self._easyocr_service = None
+        self._normalizer = TextNormalizationService()
 
     def _get_ocr_service(self):
         if self._easyocr_service is None:
@@ -66,10 +73,6 @@ class DocumentExtractionService:
         content_type: str = "application/pdf",
         extract_mode: str = "auto"
     ) -> DocumentExtractionResponse:
-        """
-        Processes uploaded file bytes and returns extracted text, pages,
-        candidate keywords, and structured detected questions.
-        """
         is_pdf = (
             filename.lower().endswith(".pdf")
             or "pdf" in content_type.lower()
@@ -87,6 +90,7 @@ class DocumentExtractionService:
         extract_mode: str = "auto"
     ) -> DocumentExtractionResponse:
         import pypdfium2 as pdfium
+        from app.infrastructure.ocr.easyocr_service import EasyOCRService
 
         doc = pdfium.PdfDocument(file_bytes)
         total_pages = len(doc)
@@ -99,18 +103,16 @@ class DocumentExtractionService:
             page_num = page_idx + 1
             page = doc[page_idx]
 
-            # 1. Attempt Digital Text Extraction
             digital_text = ""
             if extract_mode != "ocr_only":
                 try:
                     textpage = page.get_textpage()
                     digital_text = textpage.get_text_range() or ""
-                    digital_text = digital_text.strip()
+                    digital_text = EasyOCRService._clean_and_repair_text(digital_text.strip())
                 except Exception:
                     digital_text = ""
 
             words = digital_text.split()
-            # If page contains substantial digital text and we're not forcing OCR
             if len(words) >= 15 and extract_mode != "ocr_only":
                 pages_data.append(
                     DocumentPageExtractionSchema(
@@ -125,21 +127,26 @@ class DocumentExtractionService:
                 confidences.append(0.99)
                 methods_used.add("digital_pdf")
             else:
-                # 2. Scanned or empty page -> Fallback to Vision OCR (EasyOCR)
                 ocr_service = self._get_ocr_service()
                 with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
                     tmp_path = tmp.name
 
                 try:
-                    pil_image = page.render(scale=200 / 72).to_pil()
+                    pil_image = page.render(scale=300 / 72).to_pil()
                     pil_image.save(tmp_path, "PNG")
-                    ocr_res = ocr_service.extract_text(tmp_path, page_num)
+
+                    enhanced_path = self._enhance_image_cv2(tmp_path)
+                    try:
+                        ocr_res = ocr_service.extract_text(enhanced_path, page_num)
+                    finally:
+                        if enhanced_path != tmp_path and os.path.exists(enhanced_path):
+                            os.unlink(enhanced_path)
                 finally:
                     if os.path.exists(tmp_path):
                         os.unlink(tmp_path)
 
                 page_text = ocr_res.get("extracted_text", "")
-                confidence = float(ocr_res.get("average_confidence", 0.85))
+                confidence = float(ocr_res.get("average_confidence", 0.88))
                 raw_boxes = ocr_res.get("bounding_boxes", [])
 
                 bboxes = [
@@ -161,7 +168,7 @@ class DocumentExtractionService:
                         page_number=page_num,
                         text=page_text,
                         confidence=confidence,
-                        method="ocr_easyocr",
+                        method="ocr_easyocr_enhanced",
                         bounding_boxes=bboxes
                     )
                 )
@@ -173,10 +180,8 @@ class DocumentExtractionService:
         overall_confidence = sum(confidences) / len(confidences) if confidences else 1.0
         overall_method = " + ".join(sorted(methods_used)) if methods_used else "digital_pdf"
 
-        # Extract structured questions and keywords
         detected_questions = self._parse_questions(combined_text)
         suggested_keywords = self._extract_keywords(combined_text)
-
         total_words = len(combined_text.split())
 
         return DocumentExtractionResponse(
@@ -204,7 +209,12 @@ class DocumentExtractionService:
             tmp_path = tmp.name
 
         try:
-            ocr_res = ocr_service.extract_text(tmp_path, page_number=1)
+            enhanced_path = self._enhance_image_cv2(tmp_path)
+            try:
+                ocr_res = ocr_service.extract_text(enhanced_path, page_number=1)
+            finally:
+                if enhanced_path != tmp_path and os.path.exists(enhanced_path):
+                    os.unlink(enhanced_path)
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
@@ -231,7 +241,7 @@ class DocumentExtractionService:
             page_number=1,
             text=extracted_text,
             confidence=confidence,
-            method="ocr_easyocr",
+            method="ocr_easyocr_enhanced",
             bounding_boxes=bboxes
         )
 
@@ -245,21 +255,62 @@ class DocumentExtractionService:
             total_pages=1,
             total_words=total_words,
             average_confidence=round(confidence, 4),
-            extraction_method="ocr_easyocr",
+            extraction_method="ocr_easyocr_enhanced",
             extracted_full_text=extracted_text,
             suggested_keywords=suggested_keywords,
             detected_questions=detected_questions,
             pages=[page_data],
         )
 
+    def _enhance_image_cv2(self, image_path: str) -> str:
+        try:
+            img = cv2.imread(image_path)
+            if img is None:
+                return image_path
+
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            denoised = cv2.bilateralFilter(gray, d=9, sigmaColor=75, sigmaSpace=75)
+            clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
+            contrast = clahe.apply(denoised)
+            deskewed = self._deskew_cv2(contrast)
+
+            enhanced_tmp = tempfile.NamedTemporaryFile(suffix="_enhanced.png", delete=False)
+            cv2.imwrite(enhanced_tmp.name, deskewed)
+            enhanced_tmp.close()
+            return enhanced_tmp.name
+        except Exception:
+            return image_path
+
+    def _deskew_cv2(self, gray: np.ndarray) -> np.ndarray:
+        try:
+            thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+            pts = cv2.findNonZero(thresh)
+            if pts is None:
+                return gray
+
+            rect = cv2.minAreaRect(pts)
+            angle = rect[-1]
+            if angle < -45:
+                angle = -(90 + angle)
+            elif angle > 45:
+                angle = 90 - angle
+            else:
+                angle = -angle
+
+            if abs(angle) > 15.0 or abs(angle) < 0.2:
+                return gray
+
+            (h, w) = gray.shape[:2]
+            center = (w // 2, h // 2)
+            M = cv2.getRotationMatrix2D(center, angle, 1.0)
+            return cv2.warpAffine(gray, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+        except Exception:
+            return gray
+
     def _parse_questions(self, text: str) -> list[ExtractedQuestionSchema]:
-        """
-        Parses questions and optional model answers / marks from extracted text.
-        """
         if not text.strip():
             return []
 
-        # Question match pattern: Question 1, Q1, Q.1, 1., 1)
         pattern = re.compile(
             r'(?:^|\n)\s*(?:(?:Question|Q\.?)\s*(\d+)|\b(\d+)[\.\)])\s*[:\-]?\s*(.*?)(?=(?:\n\s*(?:(?:Question|Q\.?)\s*\d+|\b\d+[\.\)]))|\Z)',
             re.DOTALL | re.IGNORECASE
@@ -280,7 +331,6 @@ class DocumentExtractionService:
                 parsed_q = self._clean_and_structure_question(q_num, content)
                 questions.append(parsed_q)
         else:
-            # Fallback: if no question numbers, check if there are paragraphs
             paragraphs = [p.strip() for p in text.split("\n\n") if len(p.strip().split()) >= 4]
             for idx, p in enumerate(paragraphs[:5]):
                 questions.append(self._clean_and_structure_question(idx + 1, p))
@@ -288,17 +338,17 @@ class DocumentExtractionService:
         return questions
 
     def _clean_and_structure_question(self, q_num: int, content: str) -> ExtractedQuestionSchema:
-        # Extract marks (e.g., [10 marks], (5 Marks), [10M], 10 pts)
-        marks_match = re.search(r'\[?\s*\(?\s*(\d+)\s*(?:marks?|pts?|m)\s*\)?\s*\]?', content, re.IGNORECASE)
+        marks_match = re.search(r'\[?\s*\(?\s*(\d+)\s*(?:marks?|pts?|points?|m)?\s*\)?\s*\]?', content, re.IGNORECASE)
         max_marks = 10
         if marks_match:
             try:
-                max_marks = int(marks_match.group(1))
+                extracted_marks = int(marks_match.group(1))
+                if 1 <= extracted_marks <= 100:
+                    max_marks = extracted_marks
             except ValueError:
                 pass
 
-        # Check for model answer or solution section
-        answer_split = re.split(r'(?:Model\s+Answer|Solution|Expected\s+Answer)\s*[:\-]', content, flags=re.IGNORECASE)
+        answer_split = re.split(r'(?:Model\s+Answer|Solution|Expected\s+Answer|Ans|Key)\s*[:\-]', content, flags=re.IGNORECASE)
         model_answer = None
         if len(answer_split) > 1:
             q_text = answer_split[0].strip()
@@ -306,19 +356,17 @@ class DocumentExtractionService:
         else:
             q_text = content.strip()
 
-        # Clean trailing marks tokens from question text
-        q_text = re.sub(r'\[?\s*\(?\s*\d+\s*(?:marks?|pts?|m)\s*\)?\s*\]?', '', q_text, flags=re.IGNORECASE).strip()
+        q_text = re.sub(r'\[?\s*\(?\s*\d+\s*(?:marks?|pts?|points?|m)?\s*\)?\s*\]?', '', q_text, flags=re.IGNORECASE).strip()
+        q_text = re.sub(r'^[:\-\s]+', '', q_text).strip()
 
-        # Infer question type
         lower_q = q_text.lower()
-        if any(term in lower_q for term in ["calculate", "solve", "evaluate the numerical", "derivative", "integral", "matrix"]):
+        if any(term in lower_q for term in ["calculate", "solve", "evaluate", "compute", "derivative", "integral", "matrix", "formula"]):
             q_type = "NUMERICAL"
         elif max_marks <= 3 or len(q_text.split()) < 15 or any(lower_q.startswith(w) for w in ["what is", "define", "state", "name", "list"]):
             q_type = "SHORT_ANSWER"
         else:
             q_type = "ESSAY"
 
-        # Suggested keywords for this question
         q_keywords = self._extract_keywords(q_text + " " + (model_answer or ""))
 
         return ExtractedQuestionSchema(
@@ -326,24 +374,24 @@ class DocumentExtractionService:
             question_text=q_text,
             question_type=q_type,
             max_marks=max_marks,
-            suggested_keywords=q_keywords[:8],
+            suggested_keywords=q_keywords[:10],
             suggested_model_answer=model_answer,
         )
 
     def _extract_keywords(self, text: str) -> list[str]:
-        """
-        Extracts salient conceptual and lexical keywords, removing stopwords.
-        """
-        # Clean words
+        if not text:
+            return []
+
         words = re.findall(r'\b[A-Za-z][A-Za-z0-9_\-]{2,}\b', text)
-        filtered = [
-            w.lower() for w in words
-            if w.lower() not in STOPWORDS and len(w) >= 3 and not w.isdigit()
-        ]
+        filtered = []
+        for w in words:
+            low = w.lower()
+            if low not in STOPWORDS and len(low) >= 3 and not low.isdigit():
+                root = self._normalizer.lemmatize_word(low)
+                filtered.append(root if len(root) >= 3 else low)
 
         if not filtered:
             return []
 
         counts = Counter(filtered)
-        # Preserve original casing for prominent capitalized terms
         return [w for w, _ in counts.most_common(12)]
